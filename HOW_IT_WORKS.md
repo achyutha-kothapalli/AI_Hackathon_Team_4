@@ -1,4 +1,4 @@
-# How Letter Lens works
+# How BriefVerstehen works
 
 This document follows one letter from the user's camera to the screen. It
 explains what each part does and why it was built that way. For setup
@@ -352,6 +352,40 @@ Importing the repo uses the **root** `vercel.json`:
 - Frontend and API share one domain, so the frontend's default same-origin `/api`
   calls just work and no CORS setup is needed. Only `ANTHROPIC_API_KEY` must be set.
 - The root `.vercelignore` keeps virtualenvs, `node_modules`, tests and scripts out of the upload.
+
+#### Step by step: deploy option A
+
+1. **Sign in.** Go to [vercel.com](https://vercel.com) → *Continue with GitHub*, using the
+   account that owns the repository. The free Hobby plan is enough.
+2. **Import.** *Add New… → Project* → pick the repository → *Import*. If it isn't
+   listed, click *Adjust GitHub App Permissions* and grant access to it.
+3. **Configure.** Change as little as possible:
+   - *Project Name*: e.g. `briefverstehen`, which gives `https://briefverstehen.vercel.app`.
+   - *Framework Preset*: leave as detected, or *Other*.
+   - *Root Directory*: leave at `./` (the repo root). Don't choose `backend` or `frontend`.
+   - *Build and Output Settings*: leave untouched; the root `vercel.json` sets them.
+   - *Environment Variables*: add `ANTHROPIC_API_KEY` = your key. Optional:
+     `CLAUDE_EFFORT` (`low` / `medium` / `high`), `MAX_PAGES`.
+4. **Deploy.** Click *Deploy*. The build takes about 1–2 minutes.
+5. **Check.**
+   - `https://<project>.vercel.app/api/health` returns `{"status":"ok"}`.
+   - `https://<project>.vercel.app/api/meta` starts with `"analyzer":"claude"`. If it
+     says `"mock"`, the key is missing.
+   - The home page shows no yellow "Demo mode" banner, and uploading a letter returns a real analysis.
+
+After that, every push to `main` redeploys production automatically, and every
+pull request gets its own preview URL.
+
+**Troubleshooting**
+
+| Symptom | Fix |
+|---|---|
+| `/api/meta` says `"analyzer":"mock"` | *Settings → Environment Variables*: set `ANTHROPIC_API_KEY` for Production, then *Deployments → ⋯ → Redeploy* (environment variables only apply to new deployments) |
+| Build fails mentioning `maxDuration` | Your plan allows less time: lower `"maxDuration"` in the root `vercel.json` (e.g. to `60`) and push |
+| Site loads but `/api/...` returns 404 | Root Directory was changed; set it back to the repo root in *Settings → General* and redeploy |
+| Analysis ends with "took too long" (504) | Set `CLAUDE_EFFORT=low` or upload fewer pages |
+| "Upload is too large" (413) | Pages are compressed automatically; use fewer pages or lower-resolution photos |
+| Anything else | Open the deployment → *Logs* / *Build Logs* and read the first red line |
 
 ### Option B — two projects
 

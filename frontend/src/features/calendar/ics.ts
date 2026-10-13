@@ -54,7 +54,7 @@ export function buildIcs(items: KeyItem[], result: AnalysisResult): string {
       .join("\n");
     return [
       "BEGIN:VEVENT",
-      `UID:${crypto.randomUUID()}@letter-lens`,
+      `UID:${crypto.randomUUID()}@briefverstehen`,
       `DTSTAMP:${stamp()}`,
       `DTSTART;VALUE=DATE:${ymd(item.date!)}`,
       `DTEND;VALUE=DATE:${ymd(nextDay(item.date!))}`,
@@ -78,7 +78,7 @@ export function buildIcs(items: KeyItem[], result: AnalysisResult): string {
   return [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//Letter Lens//EN",
+    "PRODID:-//BriefVerstehen//EN",
     "CALSCALE:GREGORIAN",
     ...events.flat(),
     "END:VCALENDAR",
