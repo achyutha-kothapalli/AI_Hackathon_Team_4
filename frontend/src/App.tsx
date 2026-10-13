@@ -22,7 +22,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand">
           <img src="/favicon.svg" alt="" width={28} height={28} />
-          <span>Letter Lens</span>
+          <span>BriefVerstehen</span>
         </div>
         <label className="lang">
           <span>Translate to</span>

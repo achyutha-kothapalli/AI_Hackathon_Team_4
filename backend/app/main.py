@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.INFO)
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title="Letter Lens API", version="0.1.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
+    app = FastAPI(title="BriefVerstehen API", version="0.1.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
 
     # Only needed when the frontend is served from a different origin;
     # on Vercel both live on the same domain.

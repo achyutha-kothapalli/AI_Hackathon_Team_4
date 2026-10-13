@@ -1,4 +1,4 @@
-# Letter Lens
+# BriefVerstehen
 
 Photograph a German letter → get a translation, a plain-language summary, the
 deadlines, amounts and reference numbers that matter, **and see exactly where
@@ -83,7 +83,7 @@ Every push to `main` redeploys; every pull request gets its own preview URL.
 1. Push the repo to GitHub.
 2. **Backend project:** Import the repo in Vercel and set **Root Directory = `backend`**.
    Add environment variables `ANTHROPIC_API_KEY` and `CORS_ORIGINS` (the frontend's
-   URL, e.g. `https://letter-lens.vercel.app`). Deploy and note its URL.
+   URL, e.g. `https://briefverstehen.vercel.app`). Deploy and note its URL.
 3. **Frontend project:** Import the same repo again with **Root Directory = `frontend`**.
    Add `VITE_API_URL` = the backend URL from step 2. Deploy.
 4. If the frontend URL changed, update `CORS_ORIGINS` on the backend and redeploy it.
