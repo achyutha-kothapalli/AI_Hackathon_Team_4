@@ -4,7 +4,7 @@ Photograph a German letter → get a translation, a plain-language summary, the
 deadlines, amounts and reference numbers that matter, **and see exactly where
 each one is printed on your photo**. Deadlines export to your calendar.
 
-- **backend/** — FastAPI (Python). Calls Claude and returns structured JSON.
+- **backend/** — FastAPI (Python). Calls Claude or TrustedTokens (EU-hosted models) and returns structured JSON.
 - **frontend/** — React + Vite (TypeScript). Upload, overlay viewer, insights.
 
 The two folders share nothing but the HTTP API. Import the repo into Vercel
