@@ -12,6 +12,10 @@ def create_analyzer(settings: Settings) -> Analyzer:
         from .claude import ClaudeAnalyzer
 
         return ClaudeAnalyzer(settings)
+    if settings.analyzer == "trustedtokens":
+        from .trustedtokens import TrustedTokensAnalyzer
+
+        return TrustedTokensAnalyzer(settings)
     raise ValueError(f"Unknown ANALYZER '{settings.analyzer}'")
 
 

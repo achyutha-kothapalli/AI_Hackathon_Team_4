@@ -123,6 +123,40 @@ The response is checked before it is used:
 All of these are `AnalyzerError`s. `main.py` turns them into
 `{"detail": "..."}` JSON, which the frontend shows in a red banner.
 
+#### Alternative: TrustedTokens (EU-hosted open models)
+
+`backend/app/analyzers/trustedtokens.py` does the same job through
+[TrustedTokens](https://trustedtokens.eu/docs/), an AI gateway by TNG that runs
+open-source models in Germany and keeps data in the EU. Use it when data must stay
+in the EU, or when the hackathon provides TrustedTokens credits.
+
+- **API:** OpenAI-compatible `POST https://api.trustedtokens.eu/v1/chat/completions`,
+  authenticated with `Authorization: Bearer <TRUSTEDTOKENS_API_KEY>` (via the `openai` Python SDK).
+- **Same prompt, same pages:** the system prompt is built by the same `build_system_prompt`;
+  each page is sent as an `image_url` data URL.
+- **Structured output:** it first asks for `response_format: json_schema` (strict) with
+  the schema generated from `AnalysisResult`. If the model rejects that, it retries once
+  in `json_object` mode with the schema written into the prompt. Either way the answer
+  is validated with Pydantic; Markdown code fences around the JSON are tolerated.
+- **The model must read images.** Pick a vision-capable model id from
+  `GET https://api.trustedtokens.eu/v1/models` (needs your key) and set `TRUSTEDTOKENS_MODEL`.
+  If the model is text-only, the user sees "does the model support images?".
+- **Errors** map to the same messages as above (`finish_reason: length` → 413,
+  `content_filter` → 422, invalid JSON → 502, bad key → 500, rate limit → 429).
+
+Enable it in `backend/.env` (or in Vercel's environment variables):
+
+```
+ANALYZER=trustedtokens
+TRUSTEDTOKENS_API_KEY=<your token>
+TRUSTEDTOKENS_MODEL=<vision-capable model id>
+```
+
+If only `TRUSTEDTOKENS_API_KEY` is set (no Anthropic key), it is picked automatically.
+Open-source models are generally less precise than Claude at placing bounding boxes, so
+expect more "≈ approximate" highlights. The OCR verification step is what keeps the
+highlights trustworthy either way.
+
 ### Step 6 — The backend cleans the answer
 
 Back in `AnalysisService`, `_sanitize` clamps every page index to the pages that
@@ -240,6 +274,7 @@ backend/app/
 ├── analyzers/           HOW to analyse (swappable)
 │   ├── base.py          Analyzer protocol, PageImage, AnalysisRequest, AnalyzerError
 │   ├── claude.py        Claude implementation
+│   ├── trustedtokens.py TrustedTokens (EU-hosted open models, OpenAI-compatible API)
 │   ├── mock.py          returns fixtures/sample_result.json
 │   ├── prompts.py       generic instructions shared by all profiles
 │   └── __init__.py      create_analyzer() factory
@@ -269,9 +304,12 @@ and shows a "Demo mode" banner when the mock analyzer is running.
 | Variable | Default | Purpose |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | — | Enables the Claude analyzer |
-| `ANALYZER` | `claude` if a key is set, else `mock` | Force one analyzer |
+| `ANALYZER` | `claude` if `ANTHROPIC_API_KEY` is set, else `trustedtokens` if `TRUSTEDTOKENS_API_KEY` is set, else `mock` | Force one analyzer |
 | `CLAUDE_MODEL` | `claude-opus-5-5` | Model id |
 | `CLAUDE_EFFORT` | `medium` | `low` is faster and cheaper, `high` more thorough |
+| `TRUSTEDTOKENS_API_KEY` | — | Enables the TrustedTokens analyzer |
+| `TRUSTEDTOKENS_MODEL` | `Qwen/Qwen3.8-27B` | Must be a vision-capable model id |
+| `TRUSTEDTOKENS_BASE_URL` | `https://api.trustedtokens.eu/v1` | Only change if TrustedTokens tells you to |
 | `DEFAULT_PROFILE` | `german_letter` | Profile used when the client sends none |
 | `MAX_PAGES` | `6` | Pages per document |
 | `MAX_TOTAL_UPLOAD_BYTES` | `4400000` | Must stay under Vercel's 4.5 MB body limit |
@@ -429,7 +467,7 @@ With the Vercel CLI the same thing works from each folder:
 
 ## 7. Privacy and limits
 
-- Nothing is stored. Images go to the backend, are forwarded to Claude, and are
+- Nothing is stored. Images go to the backend, are forwarded to the AI provider (Claude, or TrustedTokens in Germany), and are
   discarded when the request ends. Results live only in the browser tab.
 - Tesseract downloads its language data from a CDN the first time it is used.
 - HEIC photos (iPhone default) decode only in Safari; other browsers need JPEG/PNG.
