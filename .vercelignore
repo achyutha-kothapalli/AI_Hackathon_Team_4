@@ -1,0 +1,9 @@
+**/.venv
+**/node_modules
+**/__pycache__
+**/.pytest_cache
+**/.env
+frontend/dist
+backend/tests
+backend/scripts
+Prompts_Theresa.txt

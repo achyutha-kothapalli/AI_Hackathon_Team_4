@@ -1,0 +1,15 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "npm --prefix frontend ci",
+  "buildCommand": "npm --prefix frontend run build",
+  "outputDirectory": "frontend/dist",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 120,
+      "includeFiles": "backend/app/**",
+      "excludeFiles": "{frontend/**,backend/tests/**,backend/scripts/**,backend/app/fixtures/sample_letter.png}"
+    }
+  },
+  "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }]
+}

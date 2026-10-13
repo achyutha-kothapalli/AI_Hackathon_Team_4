@@ -1,0 +1,302 @@
+{
+  "document_type": "Fine notice for speeding (Bußgeldbescheid)",
+  "sender": "City of Musterstadt, Public Order Office – Fines Department",
+  "source_language": "German",
+  "target_language": "English",
+  "summary": "The city says you drove 18 km/h too fast on 12 September 2026 and fines you EUR 98.50 (EUR 70 fine + EUR 28.50 fees). Pay by 2 November 2026 using the Kassenzeichen as reference, or object within two weeks of receiving the letter if you disagree.",
+  "action_steps": [
+    "Check the date, time and place. If you were not driving or disagree, send a written objection (Einspruch) to the Ordnungsamt within 2 weeks of receiving this letter.",
+    "Otherwise, transfer EUR 98.50 to IBAN DE12 3456 7890 1234 5678 90 by 02.11.2026.",
+    "Use 'Kassenzeichen 5.2026.48213' as the payment reference.",
+    "Keep the letter and your bank receipt."
+  ],
+  "key_items": [
+    {
+      "id": "k0",
+      "kind": "payment",
+      "importance": "high",
+      "label": "Total amount to pay",
+      "value": "98,50 EUR",
+      "explanation": "A EUR 70.00 fine for speeding plus EUR 28.50 in fees.",
+      "date": null,
+      "amount": 98.5,
+      "currency": "EUR",
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 497,
+        "x1": 893,
+        "y1": 541
+      },
+      "source_quote": "Gesamtbetrag: 98,50 EUR."
+    },
+    {
+      "id": "k1",
+      "kind": "deadline",
+      "importance": "high",
+      "label": "Payment deadline",
+      "value": "02.11.2026",
+      "explanation": "The money must reach the city's account by this date.",
+      "date": "2026-11-02",
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 471,
+        "y0": 552,
+        "x1": 715,
+        "y1": 574
+      },
+      "source_quote": "bis spätestens 02.11.2026"
+    },
+    {
+      "id": "k2",
+      "kind": "reference",
+      "importance": "high",
+      "label": "Payment reference (Kassenzeichen)",
+      "value": "5.2026.48213",
+      "explanation": "Write this exactly in the bank transfer's reference field, otherwise the payment may not be matched.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 296,
+        "y0": 598,
+        "x1": 577,
+        "y1": 620
+      },
+      "source_quote": "Kassenzeichen 5.2026.48213."
+    },
+    {
+      "id": "k3",
+      "kind": "payment",
+      "importance": "medium",
+      "label": "Bank account (IBAN)",
+      "value": "DE12 3456 7890 1234 5678 90",
+      "explanation": "Account of the city treasury (Stadtkasse Musterstadt) to transfer the money to.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 393,
+        "y0": 575,
+        "x1": 742,
+        "y1": 597
+      },
+      "source_quote": "IBAN DE12 3456 7890 1234 5678 90"
+    },
+    {
+      "id": "k4",
+      "kind": "deadline",
+      "importance": "high",
+      "label": "Deadline to object (Einspruch)",
+      "value": "2 weeks after delivery",
+      "explanation": "If you think the fine is wrong, you must object in writing within two weeks of receiving the letter. Afterwards the fine becomes final.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 687,
+        "x1": 853,
+        "y1": 727
+      },
+      "source_quote": "innerhalb von zwei Wochen nach Zustellung"
+    },
+    {
+      "id": "k5",
+      "kind": "consequence",
+      "importance": "high",
+      "label": "If you don't pay",
+      "value": "Enforcement, possible detention",
+      "explanation": "Unpaid fines are collected by force, and a court can order coercive detention until you pay.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 631,
+        "x1": 895,
+        "y1": 676
+      },
+      "source_quote": "Vollstreckung eingeleitet und Erzwingungshaft angeordnet werden."
+    },
+    {
+      "id": "k6",
+      "kind": "reference",
+      "importance": "medium",
+      "label": "File number (Aktenzeichen)",
+      "value": "OWi 2026/48213",
+      "explanation": "Quote this number in any letter or call about this case.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 724,
+        "y0": 120,
+        "x1": 860,
+        "y1": 139
+      },
+      "source_quote": "OWi 2026/48213"
+    },
+    {
+      "id": "k7",
+      "kind": "contact",
+      "importance": "low",
+      "label": "Case officer",
+      "value": "Frau Weber, 0123 456-789",
+      "explanation": "The person handling your case at the fines department.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 610,
+        "y0": 80,
+        "x1": 790,
+        "y1": 99
+      },
+      "source_quote": "Telefon: 0123 456-789"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "p0-b0",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 63,
+        "x1": 444,
+        "y1": 125
+      },
+      "original": "Stadt Musterstadt\nOrdnungsamt – Bußgeldstelle\nRathausplatz 1, 12345 Musterstadt",
+      "translation": "City of Musterstadt\nPublic Order Office – Fines Department\nRathausplatz 1, 12345 Musterstadt"
+    },
+    {
+      "id": "p0-b1",
+      "page": 0,
+      "bbox": {
+        "x0": 613,
+        "y0": 63,
+        "x1": 857,
+        "y1": 137
+      },
+      "original": "Sachbearbeiterin: Frau Weber\nTelefon: 0123 456-789\nDatum: 05.10.2026\nAktenzeichen: OWi 2026/48213",
+      "translation": "Case officer: Ms Weber\nPhone: 0123 456-789\nDate: 5 October 2026\nFile number: OWi 2026/48213"
+    },
+    {
+      "id": "p0-b2",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 188,
+        "x1": 275,
+        "y1": 274
+      },
+      "original": "Herrn\nMax Mustermann\nBeispielweg 12\n12345 Musterstadt",
+      "translation": "Mr\nMax Mustermann\nBeispielweg 12\n12345 Musterstadt"
+    },
+    {
+      "id": "p0-b3",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 319,
+        "x1": 335,
+        "y1": 342
+      },
+      "original": "Bußgeldbescheid",
+      "translation": "Fine notice (Bußgeldbescheid)"
+    },
+    {
+      "id": "p0-b4",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 364,
+        "x1": 404,
+        "y1": 381
+      },
+      "original": "Sehr geehrter Herr Mustermann,",
+      "translation": "Dear Mr Mustermann,"
+    },
+    {
+      "id": "p0-b5",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 397,
+        "x1": 895,
+        "y1": 460
+      },
+      "original": "Ihnen wird vorgeworfen, am 12.09.2026 um 08:42 Uhr in Musterstadt, Hauptstraße 40, die zulässige Höchstgeschwindigkeit innerhalb geschlossener Ortschaften um 18 km/h überschritten zu haben (§ 41 Abs. 1 i.V.m. § 49 StVO, § 24 StVG).",
+      "translation": "You are accused of having exceeded the speed limit in a built-up area by 18 km/h on 12 September 2026 at 08:42 in Musterstadt, Hauptstraße 40 (Section 41(1) in conjunction with Section 49 of the Road Traffic Regulations, Section 24 of the Road Traffic Act)."
+    },
+    {
+      "id": "p0-b6",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 476,
+        "x1": 895,
+        "y1": 539
+      },
+      "original": "Gegen Sie wird deshalb eine Geldbuße in Höhe von 70,00 EUR festgesetzt. Zusätzlich sind Gebühren und Auslagen in Höhe von 28,50 EUR zu zahlen. Gesamtbetrag: 98,50 EUR.",
+      "translation": "A fine (Geldbuße) of EUR 70.00 is therefore imposed on you. In addition, fees and expenses of EUR 28.50 must be paid. Total amount: EUR 98.50."
+    },
+    {
+      "id": "p0-b7",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 555,
+        "x1": 840,
+        "y1": 617
+      },
+      "original": "Bitte überweisen Sie den Gesamtbetrag bis spätestens 02.11.2026 auf folgendes Konto: Stadtkasse Musterstadt, IBAN DE12 3456 7890 1234 5678 90, Verwendungszweck: Kassenzeichen 5.2026.48213.",
+      "translation": "Please transfer the total amount by 2 November 2026 at the latest to the following account: Stadtkasse Musterstadt (city treasury), IBAN DE12 3456 7890 1234 5678 90, payment reference: Kassenzeichen 5.2026.48213."
+    },
+    {
+      "id": "p0-b8",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 633,
+        "x1": 892,
+        "y1": 673
+      },
+      "original": "Wird nicht fristgerecht gezahlt, kann die Vollstreckung eingeleitet und Erzwingungshaft angeordnet werden.",
+      "translation": "If payment is not made on time, enforcement proceedings can be started and coercive detention (Erzwingungshaft) can be ordered."
+    },
+    {
+      "id": "p0-b9",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 689,
+        "x1": 850,
+        "y1": 745
+      },
+      "original": "Rechtsbehelfsbelehrung: Gegen diesen Bescheid können Sie innerhalb von zwei Wochen nach Zustellung schriftlich oder zur Niederschrift Einspruch bei der Stadt Musterstadt, Ordnungsamt, Rathausplatz 1, 12345 Musterstadt, einlegen.",
+      "translation": "Information on legal remedies: You can lodge an objection (Einspruch) against this notice within two weeks of delivery, in writing or in person for the record, with the City of Musterstadt, Public Order Office, Rathausplatz 1, 12345 Musterstadt."
+    },
+    {
+      "id": "p0-b10",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 774,
+        "x1": 327,
+        "y1": 836
+      },
+      "original": "Mit freundlichen Grüßen\nIm Auftrag\nWeber",
+      "translation": "Kind regards\nOn behalf of the city\nWeber"
+    }
+  ],
+  "confidence_note": null
+}

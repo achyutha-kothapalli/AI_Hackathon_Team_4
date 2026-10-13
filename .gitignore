@@ -1,0 +1,18 @@
+# secrets — never commit; the .env.example files are the templates
+.env
+.env.*
+!.env.example
+
+# backend
+.venv/
+__pycache__/
+.pytest_cache/
+
+# frontend
+node_modules/
+dist/
+
+# tools
+.vercel
+.claude/
+*.log
