@@ -87,13 +87,3 @@ Every push to `main` redeploys; every pull request gets its own preview URL.
 3. **Frontend project:** Import the same repo again with **Root Directory = `frontend`**.
    Add `VITE_API_URL` = the backend URL from step 2. Deploy.
 4. If the frontend URL changed, update `CORS_ORIGINS` on the backend and redeploy it.
-
-## Team split (5 people)
-
-1. **AI & prompts** — `backend/app/profiles/`, `backend/app/analyzers/prompts.py`
-2. **Backend & API** — `backend/app/api/`, `backend/app/services/`, tests
-3. **Document viewer** — `frontend/src/features/viewer`, `frontend/src/features/ocr`
-4. **Insights UX** — `frontend/src/features/insights`, `frontend/src/features/calendar`
-5. **Upload, infra & demo** — `frontend/src/features/upload`, Vercel, the pitch flow
-
-Everyone except person 1 can work in mock mode.
