@@ -36,7 +36,11 @@ export function datedItems(result: AnalysisResult): KeyItem[] {
   return result.key_items.filter((k) => k.date && /^\d{4}-\d{2}-\d{2}$/.test(k.date));
 }
 
-export function buildIcs(items: KeyItem[], result: AnalysisResult): string {
+function eventTitle(item: KeyItem, result: AnalysisResult): string {
+  return `${item.label} – ${result.document_type}`;
+}
+
+export function buildIcs(items: KeyItem[], result: AnalysisResult, reminderDays: number[] = [3, 1]): string {
   const refs = result.key_items
     .filter((k) => k.kind === "reference")
     .map((k) => `${k.label}: ${k.value}`)
@@ -58,19 +62,16 @@ export function buildIcs(items: KeyItem[], result: AnalysisResult): string {
       `DTSTAMP:${stamp()}`,
       `DTSTART;VALUE=DATE:${ymd(item.date!)}`,
       `DTEND;VALUE=DATE:${ymd(nextDay(item.date!))}`,
-      `SUMMARY:${escape(`${item.label} – ${result.document_type}`)}`,
+      `SUMMARY:${escape(eventTitle(item, result))}`,
       `DESCRIPTION:${escape(description)}`,
-      // Reminders 3 days and 1 day before.
-      "BEGIN:VALARM",
-      "ACTION:DISPLAY",
-      `DESCRIPTION:${escape(item.label)}`,
-      "TRIGGER:-P3D",
-      "END:VALARM",
-      "BEGIN:VALARM",
-      "ACTION:DISPLAY",
-      `DESCRIPTION:${escape(item.label)}`,
-      "TRIGGER:-P1D",
-      "END:VALARM",
+      // One reminder per chosen lead time (default: 3 days and 1 day before).
+      ...reminderDays.flatMap((days) => [
+        "BEGIN:VALARM",
+        "ACTION:DISPLAY",
+        `DESCRIPTION:${escape(item.label)}`,
+        `TRIGGER:-P${days}D`,
+        "END:VALARM",
+      ]),
       "END:VEVENT",
     ];
   });
@@ -87,12 +88,24 @@ export function buildIcs(items: KeyItem[], result: AnalysisResult): string {
     .join("\r\n");
 }
 
-export function downloadIcs(items: KeyItem[], result: AnalysisResult) {
-  const blob = new Blob([buildIcs(items, result)], { type: "text/calendar;charset=utf-8" });
+export function downloadIcs(items: KeyItem[], result: AnalysisResult, reminderDays?: number[]) {
+  const blob = new Blob([buildIcs(items, result, reminderDays)], { type: "text/calendar;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
   a.download = items.length === 1 ? `${items[0].label}.ics` : "deadlines.ics";
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+/** Google Calendar "new event" link for one all-day item. */
+export function googleCalendarUrl(item: KeyItem, result: AnalysisResult): string {
+  const params = new URLSearchParams({
+    action: "TEMPLATE",
+    text: eventTitle(item, result),
+    dates: `${ymd(item.date!)}/${ymd(nextDay(item.date!))}`,
+    details: `${item.explanation}\n\nOriginal text: "${item.source_quote}"\n\nExplained by BriefVerstehen. Always check the original letter.`,
+    ctz: "Europe/Berlin",
+  });
+  return `https://calendar.google.com/calendar/render?${params}`;
 }

@@ -5,7 +5,7 @@ deadlines, amounts and reference numbers that matter, **and see exactly where
 each one is printed on your photo**. Deadlines export to your calendar.
 
 - **backend/** — FastAPI (Python). Calls Claude or TrustedTokens (EU-hosted models) and returns structured JSON.
-- **frontend/** — React + Vite (TypeScript). Upload, overlay viewer, insights.
+- **frontend/** — React + Vite (TypeScript). Mobile-first flow: language → upload → explanation cards, with the highlight overlay one tap away.
 - **Accuracy & safety harness** — every AI answer is checked in code against a
   networkx knowledge graph (JSON ontology + rules): nothing invented, nothing
   lost, scam and prompt-injection safeguards. Fault-injection benchmark: 71/71
@@ -28,7 +28,7 @@ Hackathon_WHU/
 │   ├── vercel.json, .vercelignore   Vercel project config (Root Directory = this folder)
 │   └── .env.example
 ├── frontend/           Node only — run, build and deploy from here
-│   ├── src/            api/, features/{upload,ocr,viewer,insights,calendar,analysis}, lib/
+│   ├── src/            api/, ui/, features/{onboarding,home,upload,processing,result,viewer,samples,calendar,ocr,analysis}, lib/
 │   ├── public/sample/  sample letter for "Try a sample"
 │   ├── package.json, vite.config.ts, tsconfig.json
 │   ├── vercel.json, .vercelignore   Vercel project config (Root Directory = this folder)
@@ -66,7 +66,7 @@ npm run dev
 In development, Vite forwards `/api/*` to the backend on port 8000, so no
 configuration is needed. Without an API key the backend runs in **mock mode**
 and returns the analysis of the sample letter, so the frontend can be built
-without keys or credits. Click "Try a sample fine notice".
+without keys or credits. Click "No letter handy? Try a sample".
 
 **Tests:** `cd backend && .venv/Scripts/python -m pytest` (no key needed).
 **Type-check + build:** `cd frontend && npm run build`.

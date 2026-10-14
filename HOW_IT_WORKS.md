@@ -46,13 +46,20 @@ They share only the HTTP API. The shape of the JSON is defined once in
 
 ### Step 1 — The user adds pages (frontend)
 
-`frontend/src/features/upload/UploadPanel.tsx` offers three ways in:
+On first visit the user picks the language for explanations (`features/onboarding/`);
+it is remembered in `localStorage` and can be changed from the globe button.
+The home screen (`features/home/HomeScreen.tsx`) offers three ways in:
 
-- **Take photo**: a file input with `capture="environment"` opens the phone's rear camera.
-- **Choose files**: images or PDFs, several at once, or drag and drop.
-- **Try a sample fine notice**: loads `public/sample/bussgeldbescheid.png`.
+- **Scan your letter**: a file input with `capture="environment"` opens the phone's rear camera.
+- **Upload PDF or image**: images or PDFs, several at once, or drag and drop.
+- **Try a sample**: a sheet with the three letters in `public/sample/` (a genuine
+  fine notice, a scam, a letter with hidden AI instructions). Picking one runs the
+  analysis straight away.
 
-Pages appear as thumbnails that can be reordered or removed before analysis.
+Pages then appear on the Check screen (`features/upload/CheckScreen.tsx`) as
+thumbnails that can be reordered or removed before analysis. While the request
+runs, `features/processing/ProcessingScreen.tsx` shows elapsed time and a Cancel
+button (the backend reports no progress, so no fake percentages).
 
 ### Step 2 — Pages are normalised in the browser
 
@@ -195,6 +202,15 @@ reading quality. Its report travels with the result as `checks`. See
 
 ### Step 8 — The results screen
 
+- `features/result/ResultScreen.tsx` shows the explanation as cards, in this order:
+  a safety alert (scam, critical findings, hidden instructions), "What is this?"
+  (sender, type, summary), the most urgent deadline with a countdown, the action
+  steps to tick off, the key details (tap to copy, "in letter ↗", a "not verified"
+  tag when the harness couldn't trace a value), the consequences, and where to get
+  help. Result text is shown in the chosen language; Arabic and Persian read right
+  to left.
+- "View original letter" and every "in letter ↗" open `features/viewer/OriginalSheet.tsx`,
+  a full-height sheet (a large dialog on desktop) around the overlay viewer.
 - `features/viewer/DocumentViewer.tsx` draws each page photo and places absolutely
   positioned boxes over it, using percentages (`bbox / 10`). They scale with the
   image at any screen size. Three modes:
@@ -202,13 +218,11 @@ reading quality. Its report travels with the result as `checks`. See
   - **Translated**: every paragraph is covered with its translation. `FitText` shrinks
     the font until the text fits the paragraph's box.
   - **Original**: the plain photo.
-- `features/insights/InsightsPanel.tsx` shows the summary, the "what to do" steps,
-  key-item cards sorted by importance (each with number, kind, value, explanation,
-  original quote and verification badge), and the full side-by-side translation.
-- Clicking a card scrolls the viewer to its highlight and makes it pulse. Clicking
-  a highlight selects its card.
+- "in letter ↗" scrolls the viewer to that item's highlight and makes it pulse.
+  Tapping a highlight shows its label, value and explanation above the page.
 - `features/calendar/ics.ts` turns every item with an ISO `date` into an all-day
-  calendar event with reminders 3 days and 1 day before. The file is built in the
+  calendar event with a reminder (1, 3 or 7 days before, chosen in
+  `CalendarSheet.tsx`), or opens a Google Calendar link. The file is built in the
   browser; no server is involved.
 
 ---
@@ -360,18 +374,26 @@ mapping (refusal, truncation, rate limit) without network access or a key.
 
 ```
 frontend/src/
-├── main.tsx, App.tsx, styles.css
+├── main.tsx
+├── App.tsx              screen + sheet navigation
+├── styles.css           design tokens and components (light + dark)
 ├── api/
 │   ├── types.ts         mirror of the backend contract
 │   └── client.ts        fetchMeta(), analyzeDocument(); VITE_API_URL support
-├── lib/kinds.ts         icons/colours per kind, date helpers
+├── lib/
+│   ├── kinds.ts         colours per kind, date helpers
+│   └── languages.ts     native names, lang tags and text direction
+├── ui/                  Icon, Topbar, Sheet, LanguageList, toast
 └── features/
     ├── analysis/useAnalysis.ts   ALL state + the pipeline (steps 2, 3, 7)
-    ├── upload/                   UploadPanel + preparePages
+    ├── onboarding/, home/        first-run language picker, home screen
+    ├── upload/                   CheckScreen + preparePages + drag and drop
+    ├── processing/               waiting screen with Cancel
+    ├── result/                   ResultScreen cards + deadline helpers
+    ├── viewer/                   OriginalSheet + DocumentViewer + FitText
+    ├── samples/SamplesSheet.tsx
     ├── ocr/verifyHighlights.ts   Tesseract + quote matching
-    ├── viewer/                   DocumentViewer + FitText
-    ├── insights/InsightsPanel.tsx
-    └── calendar/ics.ts
+    └── calendar/                 ics.ts + CalendarSheet
 ```
 
 - **One hook owns the logic.** `useAnalysis` holds pages, status, errors, the
@@ -506,7 +528,7 @@ With the Vercel CLI the same thing works from each folder:
 | You want to… | Change |
 |---|---|
 | Handle a different document type or domain | Add `backend/app/profiles/<name>.py` and register it in `profiles/__init__.py` |
-| Extract new fields | `schemas/analysis.py` + `frontend/src/api/types.ts`, then render them in `InsightsPanel` |
+| Extract new fields | `schemas/analysis.py` + `frontend/src/api/types.ts`, then render them in `features/result/ResultScreen.tsx` |
 | Add a key-item category | `KeyItemKind` on both sides + `frontend/src/lib/kinds.ts` |
 | Use another AI provider | New class in `backend/app/analyzers/`, one line in `create_analyzer` |
 | Add a feature (draft a reply, find the right office, …) | New route + service in the backend; new `frontend/src/features/<name>/` folder |
@@ -531,9 +553,11 @@ analyzer produced it (Claude, TrustedTokens, mock):
 | **Safeguards** | Scam signs (vouchers/crypto, extreme threats, foreign IBAN for an authority, invalid IBAN checksum), prompt-injection detection, refusal of unreadable photos, low-confidence flags, escalation to human help | `harness/rules.py`, `harness/safety.py` |
 
 The harness never edits the AI's answer. It returns a `checks` report next to
-the result, and the UI shows it in the **Safety checks** panel: a scam alarm,
-"x/y facts traced to the letter", "% of the text covered", the findings by
-severity, and where to get help. Untraceable facts are marked on their card.
+the result, and the result screen shows it: critical findings and scam signs in a
+red alert at the top, warnings next to the consequences, "where to get help"
+from the escalation, "x of y details traced back to the letter text" at the
+bottom, and a note when OCR finds text the AI may have missed. Untraceable facts
+get a "not verified" tag.
 
 ```mermaid
 flowchart LR
