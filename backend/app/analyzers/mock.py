@@ -9,14 +9,18 @@ from pathlib import Path
 from ..schemas.analysis import AnalysisResult
 from .base import AnalysisRequest
 
-FIXTURE = Path(__file__).resolve().parent.parent / "fixtures" / "sample_result.json"
+SAMPLES = Path(__file__).resolve().parent.parent / "fixtures" / "samples"
+FIXTURE = SAMPLES / "bussgeldbescheid.json"
 
 
 class MockAnalyzer:
     name = "mock"
 
     async def analyze(self, request: AnalysisRequest) -> AnalysisResult:
-        result = AnalysisResult.model_validate_json(FIXTURE.read_text(encoding="utf-8"))
+        fixture = SAMPLES / f"{request.sample}.json" if request.sample else FIXTURE
+        if not fixture.is_file() or fixture.parent != SAMPLES:
+            fixture = FIXTURE
+        result = AnalysisResult.model_validate_json(fixture.read_text(encoding="utf-8"))
         # Only keep content for pages that were actually uploaded.
         n = len(request.pages)
         result.blocks = [b for b in result.blocks if b.page < n]

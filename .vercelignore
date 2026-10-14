@@ -6,4 +6,5 @@
 frontend/dist
 backend/tests
 backend/scripts
+backend/evaluation
 Prompts_Theresa.txt

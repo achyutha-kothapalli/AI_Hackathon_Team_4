@@ -1,0 +1,248 @@
+{
+  "document_type": "Debt collection demand (Inkasso) – likely fraudulent",
+  "document_class": "inkasso",
+  "image_quality": "good",
+  "sender": "Zentrale Forderungsstelle Nord GmbH (claimed)",
+  "source_language": "German",
+  "target_language": "English",
+  "summary": "A company claiming to be a debt collector demands EUR 486.90 within 48 hours and threatens an arrest warrant. It asks for payment with prepaid vouchers or to a Lithuanian account.",
+  "action_steps": [
+    "Do not pay and do not send voucher codes.",
+    "Check whether you actually have a contract or open bill with the named company.",
+    "Get advice from the Verbraucherzentrale and consider reporting the letter to the police."
+  ],
+  "key_items": [
+    {
+      "id": "k0",
+      "kind": "payment",
+      "importance": "high",
+      "label": "Amount demanded",
+      "value": "486,90 EUR",
+      "explanation": "The amount the sender claims you owe.",
+      "date": null,
+      "amount": 486.9,
+      "currency": "EUR",
+      "page": 0,
+      "bbox": {
+        "x0": 331,
+        "y0": 418,
+        "x1": 601,
+        "y1": 440
+      },
+      "source_quote": "Offener Betrag: 486,90 EUR.",
+      "confidence": "high"
+    },
+    {
+      "id": "k1",
+      "kind": "deadline",
+      "importance": "high",
+      "label": "Payment deadline",
+      "value": "48 Stunden",
+      "explanation": "The sender demands payment within 48 hours.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 311,
+        "y0": 451,
+        "x1": 556,
+        "y1": 473
+      },
+      "source_quote": "innerhalb von 48 Stunden",
+      "confidence": "high"
+    },
+    {
+      "id": "k2",
+      "kind": "consequence",
+      "importance": "high",
+      "label": "Threat",
+      "value": "Haftbefehl",
+      "explanation": "The sender threatens an arrest warrant. Private companies cannot do this.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 451,
+        "x1": 809,
+        "y1": 495
+      },
+      "source_quote": "sonst beantragen wir einen Haftbefehl gegen Sie.",
+      "confidence": "high"
+    },
+    {
+      "id": "k3",
+      "kind": "payment",
+      "importance": "high",
+      "label": "Payment method demanded",
+      "value": "Paysafecard-Gutscheincodes, IBAN LT12 1000 0111 0100 1000",
+      "explanation": "Payment by vouchers or to a foreign account.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 507,
+        "x1": 850,
+        "y1": 574
+      },
+      "source_quote": "Zahlung bitte ausschließlich per Paysafecard-Gutscheincodes an zahlung@zf-nord.example oder per Überweisung auf IBAN LT12 1000 0111 0100 1000.",
+      "confidence": "high"
+    },
+    {
+      "id": "k4",
+      "kind": "consequence",
+      "importance": "high",
+      "label": "Threatened enforcement",
+      "value": "Zwangsvollstreckung",
+      "explanation": "The letter's subject threatens enforcement.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 368,
+        "y0": 317,
+        "x1": 655,
+        "y1": 344
+      },
+      "source_quote": "Zwangsvollstreckung",
+      "confidence": "high"
+    },
+    {
+      "id": "k5",
+      "kind": "reference",
+      "importance": "medium",
+      "label": "File number (Aktenzeichen)",
+      "value": "ZF-2026-77310",
+      "explanation": "The sender's reference number.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 724,
+        "y0": 80,
+        "x1": 850,
+        "y1": 99
+      },
+      "source_quote": "ZF-2026-77310",
+      "confidence": "high"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "p0-b0",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 63,
+        "x1": 483,
+        "y1": 125
+      },
+      "original": "Zentrale Forderungsstelle Nord GmbH\nInkasso und Forderungsmanagement\nPostfach 4711, 20095 Hamburg",
+      "translation": "Zentrale Forderungsstelle Nord GmbH\nDebt collection and receivables management\nPO Box 4711, 20095 Hamburg"
+    },
+    {
+      "id": "p0-b1",
+      "page": 0,
+      "bbox": {
+        "x0": 613,
+        "y0": 63,
+        "x1": 847,
+        "y1": 97
+      },
+      "original": "Datum: 08.10.2026\nAktenzeichen: ZF-2026-77310",
+      "translation": "Date: 8 October 2026\nFile number: ZF-2026-77310"
+    },
+    {
+      "id": "p0-b2",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 188,
+        "x1": 275,
+        "y1": 274
+      },
+      "original": "Herrn\nMax Mustermann\nBeispielweg 12\n12345 Musterstadt",
+      "translation": "Mr\nMax Mustermann\nBeispielweg 12\n12345 Musterstadt"
+    },
+    {
+      "id": "p0-b3",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 319,
+        "x1": 652,
+        "y1": 342
+      },
+      "original": "Letzte Mahnung vor Zwangsvollstreckung",
+      "translation": "Final reminder before enforcement"
+    },
+    {
+      "id": "p0-b4",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 364,
+        "x1": 410,
+        "y1": 381
+      },
+      "original": "Sehr geehrte Damen und Herren,",
+      "translation": "Dear Sir or Madam,"
+    },
+    {
+      "id": "p0-b5",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 397,
+        "x1": 877,
+        "y1": 437
+      },
+      "original": "trotz mehrfacher Aufforderung haben Sie die offene Forderung aus Ihrem Vertrag Nr. 55-9921 nicht beglichen. Offener Betrag: 486,90 EUR.",
+      "translation": "despite several requests you have not settled the outstanding claim from your contract no. 55-9921. Outstanding amount: EUR 486.90."
+    },
+    {
+      "id": "p0-b6",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 453,
+        "x1": 806,
+        "y1": 493
+      },
+      "original": "Zahlen Sie den Betrag innerhalb von 48 Stunden, sonst beantragen wir einen Haftbefehl gegen Sie.",
+      "translation": "Pay the amount within 48 hours, otherwise we will apply for an arrest warrant against you."
+    },
+    {
+      "id": "p0-b7",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 509,
+        "x1": 847,
+        "y1": 572
+      },
+      "original": "Zahlung bitte ausschließlich per Paysafecard-Gutscheincodes an zahlung@zf-nord.example oder per Überweisung auf IBAN LT12 1000 0111 0100 1000.",
+      "translation": "Payment exclusively by Paysafecard voucher codes to zahlung@zf-nord.example or by transfer to IBAN LT12 1000 0111 0100 1000."
+    },
+    {
+      "id": "p0-b8",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 600,
+        "x1": 327,
+        "y1": 640
+      },
+      "original": "Mit freundlichen Grüßen\nForderungsabteilung",
+      "translation": "Kind regards\nReceivables department"
+    }
+  ],
+  "confidence_note": null,
+  "suspicious_instructions": null
+}

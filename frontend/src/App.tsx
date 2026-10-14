@@ -40,7 +40,7 @@ export default function App() {
 
       {a.meta.analyzer === "mock" && (
         <p className="demo-banner">
-          Demo mode: the server has no AI key, so every upload returns the sample analysis.
+          Demo mode: the server has no AI key, so uploads return a prepared sample analysis instead of reading your letter.
         </p>
       )}
 
@@ -104,6 +104,8 @@ export default function App() {
             />
             <InsightsPanel
               result={a.response.result}
+              checks={a.response.checks}
+              coverage={a.coverage}
               verifications={a.verifications}
               ocrState={a.ocrState}
               activeItemId={activeItemId}

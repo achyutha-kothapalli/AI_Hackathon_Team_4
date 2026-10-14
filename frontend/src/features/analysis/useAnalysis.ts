@@ -4,11 +4,26 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { analyzeDocument, fetchMeta } from "../../api/client";
 import type { AnalyzeResponse, Meta } from "../../api/types";
-import { ocrLanguageFor, ocrPages, verifyItems, type OcrWord, type Verification } from "../ocr/verifyHighlights";
+import {
+  ocrLanguageFor,
+  ocrPages,
+  textCoverage,
+  verifyItems,
+  type Coverage,
+  type OcrWord,
+  type Verification,
+} from "../ocr/verifyHighlights";
 import { fitToBudget, preparePages, releasePages, type PreparedPage } from "../upload/preparePages";
 
 export type Status = "idle" | "preparing" | "analyzing" | "done";
 export type OcrState = "running" | "done" | "failed";
+
+/** Bundled sample letters ("Try a sample"). In demo mode the backend returns the matching answer. */
+export const SAMPLES = [
+  { id: "bussgeldbescheid", label: "Genuine fine notice", file: "/sample/bussgeldbescheid.png" },
+  { id: "scam_inkasso", label: "Fake debt collection (scam)", file: "/sample/scam_inkasso.png" },
+  { id: "injection_hundesteuer", label: "Letter with hidden AI instructions", file: "/sample/injection_hundesteuer.png" },
+] as const;
 
 const FALLBACK_META: Meta = {
   analyzer: "unknown",
@@ -27,6 +42,8 @@ export function useAnalysis() {
   const [response, setResponse] = useState<AnalyzeResponse | null>(null);
   const [verifications, setVerifications] = useState<Record<string, Verification> | null>(null);
   const [ocrState, setOcrState] = useState<OcrState>("running");
+  const [coverage, setCoverage] = useState<Coverage | null>(null);
+  const [sample, setSample] = useState<string | null>(null);
   const [targetLanguage, setTargetLanguage] = useState("English");
   const abortRef = useRef<AbortController | null>(null);
   const pagesRef = useRef(pages);
@@ -48,6 +65,7 @@ export function useAnalysis() {
         return;
       }
       setStatus("preparing");
+      setSample(null); // user's own files: no sample hint
       try {
         const added = await preparePages(files, room);
         setPages((prev) => [...prev, ...added]);
@@ -60,11 +78,18 @@ export function useAnalysis() {
     [meta.max_pages],
   );
 
-  const trySample = useCallback(async () => {
-    const res = await fetch("/sample/bussgeldbescheid.png");
-    const blob = await res.blob();
-    await addFiles([new File([blob], "bussgeldbescheid.png", { type: "image/png" })]);
-  }, [addFiles]);
+  const trySample = useCallback(
+    async (id: string = SAMPLES[0].id) => {
+      const s = SAMPLES.find((x) => x.id === id) ?? SAMPLES[0];
+      releasePages(pagesRef.current);
+      setPages([]);
+      pagesRef.current = [];
+      const blob = await (await fetch(s.file)).blob();
+      await addFiles([new File([blob], `${s.id}.png`, { type: "image/png" })]);
+      setSample(s.id);
+    },
+    [addFiles],
+  );
 
   const removePage = useCallback((id: string) => {
     setPages((prev) => {
@@ -91,6 +116,7 @@ export function useAnalysis() {
     setError(null);
     setStatus("analyzing");
     setVerifications(null);
+    setCoverage(null);
     setOcrState("running");
     abortRef.current = new AbortController();
 
@@ -109,6 +135,7 @@ export function useAnalysis() {
       const res = await analyzeDocument(blobs, {
         targetLanguage,
         profile: meta.default_profile,
+        sample: sample ?? undefined,
         signal: abortRef.current.signal,
       });
       setResponse(res);
@@ -116,6 +143,7 @@ export function useAnalysis() {
       const words = await ocr;
       if (words) {
         setVerifications(verifyItems(res.result.key_items, words));
+        setCoverage(textCoverage(words, res.result.blocks));
         setOcrState("done");
       } else {
         setOcrState("failed");
@@ -125,7 +153,7 @@ export function useAnalysis() {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setStatus("idle");
     }
-  }, [meta, targetLanguage]);
+  }, [meta, targetLanguage, sample]);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
@@ -133,6 +161,8 @@ export function useAnalysis() {
     setPages([]);
     setResponse(null);
     setVerifications(null);
+    setCoverage(null);
+    setSample(null);
     setError(null);
     setStatus("idle");
   }, []);
@@ -145,6 +175,7 @@ export function useAnalysis() {
     response,
     verifications,
     ocrState,
+    coverage,
     targetLanguage,
     setTargetLanguage,
     addFiles,

@@ -1,12 +1,14 @@
 {
   "document_type": "Fine notice for speeding (Bußgeldbescheid)",
+  "document_class": "bussgeldbescheid",
+  "image_quality": "good",
   "sender": "City of Musterstadt, Public Order Office – Fines Department",
   "source_language": "German",
   "target_language": "English",
   "summary": "The city says you drove 18 km/h too fast on 12 September 2026 and fines you EUR 98.50 (EUR 70 fine + EUR 28.50 fees). Pay by 2 November 2026 using the Kassenzeichen as reference, or object within two weeks of receiving the letter if you disagree.",
   "action_steps": [
     "Check the date, time and place. If you were not driving or disagree, send a written objection (Einspruch) to the Ordnungsamt within 2 weeks of receiving this letter.",
-    "Otherwise, transfer EUR 98.50 to IBAN DE12 3456 7890 1234 5678 90 by 02.11.2026.",
+    "Otherwise, transfer EUR 98.50 to IBAN DE29 1001 0010 0987 6543 21 by 02.11.2026.",
     "Use 'Kassenzeichen 5.2026.48213' as the payment reference.",
     "Keep the letter and your bank receipt."
   ],
@@ -28,7 +30,8 @@
         "x1": 893,
         "y1": 541
       },
-      "source_quote": "Gesamtbetrag: 98,50 EUR."
+      "source_quote": "Gesamtbetrag: 98,50 EUR.",
+      "confidence": "high"
     },
     {
       "id": "k1",
@@ -47,7 +50,8 @@
         "x1": 715,
         "y1": 574
       },
-      "source_quote": "bis spätestens 02.11.2026"
+      "source_quote": "bis spätestens 02.11.2026",
+      "confidence": "high"
     },
     {
       "id": "k2",
@@ -66,14 +70,15 @@
         "x1": 577,
         "y1": 620
       },
-      "source_quote": "Kassenzeichen 5.2026.48213."
+      "source_quote": "Kassenzeichen 5.2026.48213.",
+      "confidence": "high"
     },
     {
       "id": "k3",
       "kind": "payment",
       "importance": "medium",
       "label": "Bank account (IBAN)",
-      "value": "DE12 3456 7890 1234 5678 90",
+      "value": "DE29 1001 0010 0987 6543 21",
       "explanation": "Account of the city treasury (Stadtkasse Musterstadt) to transfer the money to.",
       "date": null,
       "amount": null,
@@ -85,14 +90,15 @@
         "x1": 742,
         "y1": 597
       },
-      "source_quote": "IBAN DE12 3456 7890 1234 5678 90"
+      "source_quote": "IBAN DE29 1001 0010 0987 6543 21",
+      "confidence": "high"
     },
     {
       "id": "k4",
       "kind": "deadline",
       "importance": "high",
       "label": "Deadline to object (Einspruch)",
-      "value": "2 weeks after delivery",
+      "value": "zwei Wochen nach Zustellung",
       "explanation": "If you think the fine is wrong, you must object in writing within two weeks of receiving the letter. Afterwards the fine becomes final.",
       "date": null,
       "amount": null,
@@ -104,14 +110,15 @@
         "x1": 853,
         "y1": 727
       },
-      "source_quote": "innerhalb von zwei Wochen nach Zustellung"
+      "source_quote": "innerhalb von zwei Wochen nach Zustellung",
+      "confidence": "high"
     },
     {
       "id": "k5",
       "kind": "consequence",
       "importance": "high",
       "label": "If you don't pay",
-      "value": "Enforcement, possible detention",
+      "value": "Vollstreckung, Erzwingungshaft",
       "explanation": "Unpaid fines are collected by force, and a court can order coercive detention until you pay.",
       "date": null,
       "amount": null,
@@ -123,7 +130,8 @@
         "x1": 895,
         "y1": 676
       },
-      "source_quote": "Vollstreckung eingeleitet und Erzwingungshaft angeordnet werden."
+      "source_quote": "Vollstreckung eingeleitet und Erzwingungshaft angeordnet werden.",
+      "confidence": "high"
     },
     {
       "id": "k6",
@@ -142,7 +150,8 @@
         "x1": 860,
         "y1": 139
       },
-      "source_quote": "OWi 2026/48213"
+      "source_quote": "OWi 2026/48213",
+      "confidence": "high"
     },
     {
       "id": "k7",
@@ -161,7 +170,8 @@
         "x1": 790,
         "y1": 99
       },
-      "source_quote": "Telefon: 0123 456-789"
+      "source_quote": "Telefon: 0123 456-789",
+      "confidence": "high"
     }
   ],
   "blocks": [
@@ -258,8 +268,8 @@
         "x1": 840,
         "y1": 617
       },
-      "original": "Bitte überweisen Sie den Gesamtbetrag bis spätestens 02.11.2026 auf folgendes Konto: Stadtkasse Musterstadt, IBAN DE12 3456 7890 1234 5678 90, Verwendungszweck: Kassenzeichen 5.2026.48213.",
-      "translation": "Please transfer the total amount by 2 November 2026 at the latest to the following account: Stadtkasse Musterstadt (city treasury), IBAN DE12 3456 7890 1234 5678 90, payment reference: Kassenzeichen 5.2026.48213."
+      "original": "Bitte überweisen Sie den Gesamtbetrag bis spätestens 02.11.2026 auf folgendes Konto: Stadtkasse Musterstadt, IBAN DE29 1001 0010 0987 6543 21, Verwendungszweck: Kassenzeichen 5.2026.48213.",
+      "translation": "Please transfer the total amount by 2 November 2026 at the latest to the following account: Stadtkasse Musterstadt (city treasury), IBAN DE29 1001 0010 0987 6543 21, payment reference: Kassenzeichen 5.2026.48213."
     },
     {
       "id": "p0-b8",
@@ -298,5 +308,6 @@
       "translation": "Kind regards\nOn behalf of the city\nWeber"
     }
   ],
-  "confidence_note": null
+  "confidence_note": null,
+  "suspicious_instructions": null
 }

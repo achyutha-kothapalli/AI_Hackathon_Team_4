@@ -1,11 +1,12 @@
 from functools import lru_cache
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from ..analyzers import create_analyzer
 from ..config import Settings, get_settings
-from ..profiles import PROFILES
+from ..knowledge import load_knowledge
+from ..profiles import PROFILES, get_profile
 from ..schemas.analysis import AnalyzeResponse
 from ..services.analysis_service import SUPPORTED_LANGUAGES, AnalysisService
 
@@ -42,12 +43,23 @@ def meta(
     }
 
 
+@router.get("/knowledge/{profile_id}")
+def knowledge(profile_id: str) -> dict:
+    """The knowledge graph (ontology + rules) behind a profile, as node-link JSON."""
+    try:
+        profile = get_profile(profile_id)
+    except KeyError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from None
+    return load_knowledge(profile.knowledge).to_json()
+
+
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze(
     service: Annotated[AnalysisService, Depends(get_service)],
     files: Annotated[list[UploadFile], File(description="One image per page, in order.")],
     profile: Annotated[str | None, Form()] = None,
     target_language: Annotated[str, Form()] = "English",
+    sample: Annotated[str | None, Form(description="Bundled sample id (demo mode only).")] = None,
 ) -> AnalyzeResponse:
     data = [await f.read() for f in files]
-    return await service.analyze(data, profile, target_language)
+    return await service.analyze(data, profile, target_language, sample)

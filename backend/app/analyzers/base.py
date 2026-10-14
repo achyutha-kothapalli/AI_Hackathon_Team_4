@@ -18,6 +18,9 @@ class AnalysisRequest:
     pages: list[PageImage]
     profile: Profile
     target_language: str
+    # Name of a bundled sample letter, sent by the UI's "Try a sample" buttons.
+    # Only the mock analyzer uses it; real analyzers ignore it.
+    sample: str | None = None
 
 
 class AnalyzerError(Exception):
