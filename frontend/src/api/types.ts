@@ -27,6 +27,8 @@ export type KeyItemKind =
   | "other";
 
 export type Importance = "high" | "medium" | "low";
+export type Confidence = "high" | "medium" | "low";
+export type ImageQuality = "good" | "poor" | "unreadable";
 
 export interface KeyItem {
   id: string;
@@ -41,10 +43,13 @@ export interface KeyItem {
   page: number;
   bbox: BBox;
   source_quote: string;
+  confidence: Confidence;
 }
 
 export interface AnalysisResult {
   document_type: string;
+  document_class: string;
+  image_quality: ImageQuality;
   sender: string | null;
   source_language: string;
   target_language: string;
@@ -53,10 +58,56 @@ export interface AnalysisResult {
   key_items: KeyItem[];
   blocks: TextBlock[];
   confidence_note: string | null;
+  suspicious_instructions: string | null;
+}
+
+// ---- Accuracy & safety harness (backend/app/schemas/harness.py) ----
+
+export type Severity = "info" | "warning" | "critical";
+export type FindingCategory =
+  | "grounding"
+  | "completeness"
+  | "legal"
+  | "scam"
+  | "injection"
+  | "quality"
+  | "escalation";
+
+export interface Finding {
+  rule_id: string;
+  category: FindingCategory;
+  severity: Severity;
+  message: string;
+  item_ids: string[];
+  evidence: string | null;
+  legal_basis: string | null;
+}
+
+export interface ItemCheck {
+  item_id: string;
+  grounded: boolean;
+  issues: string[];
+}
+
+export interface HelpResource {
+  id: string;
+  label: string;
+  url: string | null;
+  description: string;
+}
+
+export interface HarnessReport {
+  document_class: { id: string; label: string; lineage: string[]; source: string };
+  findings: Finding[];
+  item_checks: Record<string, ItemCheck>;
+  escalation: { reason: string; resources: HelpResource[] } | null;
+  scam_suspected: boolean;
+  summary: { total_items: number; grounded_items: number; critical: number; warnings: number; infos: number };
 }
 
 export interface AnalyzeResponse {
   result: AnalysisResult;
+  checks: HarnessReport;
   analyzer: string;
   profile: string;
   page_count: number;

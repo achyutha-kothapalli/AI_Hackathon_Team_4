@@ -1,4 +1,5 @@
-"""Orchestrates one analysis: validate input -> run analyzer -> clean output.
+"""Orchestrates one analysis:
+validate input -> run analyzer -> clean output -> accuracy & safety harness.
 
 Routes stay thin and analyzers stay focused on the model call; anything that
 should apply regardless of which analyzer runs belongs here.
@@ -6,8 +7,10 @@ should apply regardless of which analyzer runs belongs here.
 
 from ..analyzers import AnalysisRequest, Analyzer, AnalyzerError, PageImage
 from ..config import Settings
+from ..harness import run_harness
+from ..knowledge import load_knowledge
 from ..profiles import get_profile
-from ..schemas.analysis import AnalysisResult, AnalyzeResponse, BBox
+from ..schemas.analysis import AnalysisResult, AnalyzeResponse, BBox, ImageQuality
 
 SUPPORTED_LANGUAGES = [
     "English",
@@ -64,7 +67,11 @@ class AnalysisService:
         return self._analyzer.name
 
     async def analyze(
-        self, files: list[bytes], profile_id: str | None, target_language: str
+        self,
+        files: list[bytes],
+        profile_id: str | None,
+        target_language: str,
+        sample: str | None = None,
     ) -> AnalyzeResponse:
         if not files:
             raise AnalyzerError("Upload at least one page.", 400)
@@ -88,10 +95,19 @@ class AnalysisService:
             raise AnalyzerError(str(e), 400) from None
 
         result = await self._analyzer.analyze(
-            AnalysisRequest(pages=pages, profile=profile, target_language=target_language)
+            AnalysisRequest(pages=pages, profile=profile, target_language=target_language, sample=sample)
         )
+        # Abstain rather than guess: an unreadable photo gets no analysis.
+        if result.image_quality == ImageQuality.unreadable:
+            raise AnalyzerError(
+                "The photo is too blurry, dark or cropped to read reliably. "
+                "Please retake it flat, in good light, with the whole page visible.",
+                422,
+            )
+        result = _sanitize(result, len(pages))
         return AnalyzeResponse(
-            result=_sanitize(result, len(pages)),
+            result=result,
+            checks=run_harness(result, load_knowledge(profile.knowledge)),
             analyzer=self._analyzer.name,
             profile=profile.id,
             page_count=len(pages),

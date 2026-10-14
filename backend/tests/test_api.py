@@ -39,6 +39,31 @@ def test_analyze_sample_letter():
     for k in body["result"]["key_items"]:
         b = k["bbox"]
         assert 0 <= b["x0"] < b["x1"] <= 1000 and 0 <= b["y0"] < b["y1"] <= 1000
+    checks = body["checks"]
+    assert checks["document_class"]["id"] == "bussgeldbescheid"
+    assert checks["summary"]["grounded_items"] == checks["summary"]["total_items"]
+    assert checks["scam_suspected"] is False
+
+
+def test_knowledge_endpoint():
+    body = client.get("/api/knowledge/german_letter").json()
+    assert any(n["id"] == "class:bussgeldbescheid" for n in body["nodes"])
+    assert client.get("/api/knowledge/nope").status_code == 404
+
+
+def test_unreadable_photo_is_refused(monkeypatch):
+    from app.analyzers.mock import MockAnalyzer
+
+    original = MockAnalyzer.analyze
+
+    async def unreadable(self, request):
+        result = await original(self, request)
+        result.image_quality = "unreadable"
+        return result
+
+    monkeypatch.setattr(MockAnalyzer, "analyze", unreadable)
+    res = client.post("/api/analyze", files=[("files", ("p.png", SAMPLE.read_bytes(), "image/png"))])
+    assert res.status_code == 422 and "retake" in res.json()["detail"]
 
 
 def test_rejects_non_images():

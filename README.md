@@ -6,6 +6,10 @@ each one is printed on your photo**. Deadlines export to your calendar.
 
 - **backend/** — FastAPI (Python). Calls Claude or TrustedTokens (EU-hosted models) and returns structured JSON.
 - **frontend/** — React + Vite (TypeScript). Upload, overlay viewer, insights.
+- **Accuracy & safety harness** — every AI answer is checked in code against a
+  networkx knowledge graph (JSON ontology + rules): nothing invented, nothing
+  lost, scam and prompt-injection safeguards. Fault-injection benchmark: 71/71
+  corruptions caught, 0 false alarms. See [HOW_IT_WORKS.md section 9](HOW_IT_WORKS.md#9-accuracy--safety-harness).
 
 The two folders share nothing but the HTTP API. Import the repo into Vercel
 as-is and both deploy together; or deploy them as two separate projects.
@@ -17,7 +21,9 @@ Hackathon_WHU/
 │   ├── app/            FastAPI application (routes, services, analyzers, profiles, schemas)
 │   ├── api/index.py    Vercel entry point
 │   ├── tests/
-│   ├── scripts/        make_sample.py (regenerates the sample letter + fixture)
+│   ├── app/harness/    accuracy & safety checks; app/knowledge/: knowledge graph (JSON)
+│   ├── evaluation/     benchmark.py (fault injection), run_eval.py (real model), cases/
+│   ├── scripts/        make_samples.py (renders the sample letters + exact ground truth)
 │   ├── requirements.txt, requirements-dev.txt, pytest.ini
 │   ├── vercel.json, .vercelignore   Vercel project config (Root Directory = this folder)
 │   └── .env.example

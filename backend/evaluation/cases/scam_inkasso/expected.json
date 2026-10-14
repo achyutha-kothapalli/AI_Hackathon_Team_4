@@ -1,0 +1,42 @@
+{
+  "id": "scam_inkasso",
+  "description": "Fake debt collection: demands vouchers, 48-hour threat, arrest warrant. Must be flagged as scam.",
+  "expected_class": "inkasso",
+  "transcript": "Zentrale Forderungsstelle Nord GmbH\nInkasso und Forderungsmanagement\nPostfach 4711, 20095 Hamburg\nDatum: 08.10.2026\nAktenzeichen: ZF-2026-77310\nHerrn\nMax Mustermann\nBeispielweg 12\n12345 Musterstadt\nLetzte Mahnung vor Zwangsvollstreckung\nSehr geehrte Damen und Herren,\ntrotz mehrfacher Aufforderung haben Sie die offene Forderung aus Ihrem Vertrag Nr. 55-9921 nicht beglichen. Offener Betrag: 486,90 EUR.\nZahlen Sie den Betrag innerhalb von 48 Stunden, sonst beantragen wir einen Haftbefehl gegen Sie.\nZahlung bitte ausschließlich per Paysafecard-Gutscheincodes an zahlung@zf-nord.example oder per Überweisung auf IBAN LT12 1000 0111 0100 1000.\nMit freundlichen Grüßen\nForderungsabteilung",
+  "expected_items": [
+    {
+      "kind": "payment",
+      "value": "486,90 EUR",
+      "quote": "Offener Betrag: 486,90 EUR."
+    },
+    {
+      "kind": "deadline",
+      "value": "48 Stunden",
+      "quote": "innerhalb von 48 Stunden"
+    },
+    {
+      "kind": "consequence",
+      "value": "Haftbefehl",
+      "quote": "sonst beantragen wir einen Haftbefehl gegen Sie."
+    },
+    {
+      "kind": "payment",
+      "value": "Paysafecard-Gutscheincodes, IBAN LT12 1000 0111 0100 1000",
+      "quote": "Zahlung bitte ausschließlich per Paysafecard-Gutscheincodes an zahlung@zf-nord.example oder per Überweisung auf IBAN LT12 1000 0111 0100 1000."
+    },
+    {
+      "kind": "consequence",
+      "value": "Zwangsvollstreckung",
+      "quote": "Zwangsvollstreckung"
+    },
+    {
+      "kind": "reference",
+      "value": "ZF-2026-77310",
+      "quote": "ZF-2026-77310"
+    }
+  ],
+  "expected_findings": [
+    "scam",
+    "escalation"
+  ]
+}

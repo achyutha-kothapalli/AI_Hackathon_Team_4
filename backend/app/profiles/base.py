@@ -17,3 +17,5 @@ class Profile:
     instructions: str
     # Shown in the UI as the expected source language; the model still detects it.
     source_language: str = "German"
+    # Folder in app/knowledge/ with ontology.json + rules.json used by the harness.
+    knowledge: str = "german_letters"

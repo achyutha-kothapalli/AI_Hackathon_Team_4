@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { SAMPLES } from "../analysis/useAnalysis";
 import type { PreparedPage } from "./preparePages";
 
 interface Props {
@@ -9,7 +10,7 @@ interface Props {
   onRemove: (id: string) => void;
   onMove: (id: string, delta: -1 | 1) => void;
   onAnalyze: () => void;
-  onTrySample: () => void;
+  onTrySample: (id: string) => void;
 }
 
 export function UploadPanel({ pages, maxPages, busy, onAddFiles, onRemove, onMove, onAnalyze, onTrySample }: Props) {
@@ -103,12 +104,16 @@ export function UploadPanel({ pages, maxPages, busy, onAddFiles, onRemove, onMov
           </button>
         </>
       ) : (
-        <p className="sample-cta">
-          No letter at hand?{" "}
-          <button type="button" className="btn link" onClick={onTrySample} disabled={busy}>
-            Try a sample fine notice
-          </button>
-        </p>
+        <div className="sample-cta">
+          <p>No letter at hand? Try a sample:</p>
+          <div className="sample-buttons">
+            {SAMPLES.map((s) => (
+              <button key={s.id} type="button" className="btn link" onClick={() => onTrySample(s.id)} disabled={busy}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
       <p className="privacy">
         Your images are sent to the AI service only to analyse them and are not stored by this app.

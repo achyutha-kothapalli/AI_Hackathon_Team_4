@@ -5,7 +5,7 @@
 // that spot. If found, the highlight snaps to the real word boxes and the item
 // is marked "verified" — the user can see the AI didn't make the fact up.
 
-import type { BBox, KeyItem } from "../../api/types";
+import type { BBox, KeyItem, TextBlock } from "../../api/types";
 import type { PreparedPage } from "../upload/preparePages";
 
 export interface OcrWord {
@@ -149,6 +149,30 @@ export function locateQuote(quote: string, words: OcrWord[], hint: BBox): Verifi
   if (!best) return null;
   const matched = words.slice(best.start, best.start + tokens.length);
   return { verified: true, rects: rectsByLine(matched), score: best.score };
+}
+
+export interface Coverage {
+  ratio: number; // share of words on the photo that appear in the AI's transcription
+  missing: string[]; // examples of words on the photo the AI did not transcribe
+}
+
+/**
+ * "Nothing lost" check, independent of the AI: every readable word OCR finds on
+ * the photo should appear in the transcribed blocks. Returns null when OCR read
+ * too little text to judge.
+ */
+export function textCoverage(ocr: OcrWord[][], blocks: TextBlock[]): Coverage | null {
+  const transcribed = new Set(blocks.flatMap((b) => b.original.split(/\s+/).map(normalize)).filter(Boolean));
+  const list = [...transcribed];
+  const words = ocr.flat().filter((w) => w.norm.length >= 4 && /\p{L}/u.test(w.norm));
+  if (words.length < 20) return null;
+  const missing: string[] = [];
+  let hit = 0;
+  for (const w of words) {
+    if (transcribed.has(w.norm) || list.some((t) => similarity(w.norm, t) >= 0.8)) hit++;
+    else if (!missing.includes(w.text)) missing.push(w.text);
+  }
+  return { ratio: hit / words.length, missing: missing.slice(0, 8) };
 }
 
 export function verifyItems(items: KeyItem[], ocr: OcrWord[][]): Record<string, Verification> {
