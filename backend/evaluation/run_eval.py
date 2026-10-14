@@ -37,6 +37,14 @@ from app.services.analysis_service import sniff_image_type
 CASES = Path(__file__).resolve().parent / "cases"
 RESULTS = Path(__file__).resolve().parent / "results"
 
+# Read API keys and settings from backend/.env, like the server does with --env-file.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(Path(__file__).resolve().parents[1] / ".env")
+except ImportError:
+    pass
+
 
 def matches(expected: dict, item: KeyItem) -> bool:
     if item.kind.value != expected["kind"]:
