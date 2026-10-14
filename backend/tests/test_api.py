@@ -5,12 +5,12 @@ os.environ["ANALYZER"] = "mock"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from app.main import app  # noqa: E402
 from app.analyzers.prompts import build_system_prompt  # noqa: E402
-from app.profiles import get_profile  # noqa: E402
-from app.services.analysis_service import sniff_image_type  # noqa: E402
+from app.domains import get_domain  # noqa: E402
+from app.main import app  # noqa: E402
+from app.services.uploads import sniff_image_type  # noqa: E402
 
-SAMPLE = Path(__file__).resolve().parents[1] / "app" / "fixtures" / "sample_letter.png"
+SAMPLE = Path(__file__).resolve().parent / "fixtures" / "sample_letter.png"
 client = TestClient(app)
 
 
@@ -85,5 +85,5 @@ def test_sniff():
 
 
 def test_system_prompt_includes_profile_and_language():
-    prompt = build_system_prompt(get_profile("german_letter"), "Turkish")
+    prompt = build_system_prompt(get_domain("german_letter"), "Turkish")
     assert "Turkish" in prompt and "Einspruch" in prompt and "{" not in prompt

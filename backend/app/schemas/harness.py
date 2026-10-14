@@ -37,7 +37,9 @@ class Finding(BaseModel):
 
 class ItemCheck(BaseModel):
     item_id: str
-    grounded: bool = Field(description="Every number/date/amount of the item was found in its quote and the quote in the letter text.")
+    grounded: bool = Field(
+        description="Every number/date/amount of the item was found in its quote and the quote in the letter text."
+    )
     issues: list[str] = []
 
 

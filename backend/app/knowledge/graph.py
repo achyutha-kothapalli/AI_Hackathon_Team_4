@@ -8,7 +8,8 @@ Edges (attribute `rel`):
     rule   --concerns-->   kind       item kind the rule checks
     rule   --refers_to-->  resource   where to get help (escalation rules)
 
-The JSON files are the source of truth; this module only loads, validates and queries them.
+The JSON files live in each domain pack (app/domains/<id>/); this module is
+domain-independent and only loads, validates and queries them.
 """
 
 import json
@@ -20,8 +21,6 @@ import networkx as nx
 
 from ..schemas.harness import DocumentClassInfo
 from .models import DocClass, LegalBasis, Ontology, ResourceDef, Rule, RuleSet
-
-KNOWLEDGE_DIR = Path(__file__).resolve().parent
 
 
 class KnowledgeError(ValueError):
@@ -152,14 +151,16 @@ class KnowledgeGraph:
         """Node-link JSON for inspection/visualisation (GET /api/knowledge)."""
         g = nx.DiGraph()
         for n, d in self.graph.nodes(data=True):
-            g.add_node(n, node_type=d["type"], attributes=d["data"].model_dump(mode="json", exclude={"comment"}))
+            g.add_node(
+                n, node_type=d["type"], attributes=d["data"].model_dump(mode="json", exclude={"comment"})
+            )
         g.add_edges_from(self.graph.edges(data=True))
         return nx.node_link_data(g, edges="edges")
 
 
 @lru_cache
-def load_knowledge(name: str) -> KnowledgeGraph:
-    folder = KNOWLEDGE_DIR / name
+def load_knowledge(folder: Path) -> KnowledgeGraph:
+    """Load and validate <folder>/ontology.json + rules.json (cached per folder)."""
     ontology = Ontology.model_validate(json.loads((folder / "ontology.json").read_text(encoding="utf-8")))
     ruleset = RuleSet.model_validate(json.loads((folder / "rules.json").read_text(encoding="utf-8")))
     return KnowledgeGraph(ontology, ruleset)

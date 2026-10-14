@@ -1,22 +1,16 @@
-from functools import lru_cache
+"""HTTP layer only: parse requests, call the service, return typed responses."""
+
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
-from ..analyzers import create_analyzer
-from ..config import Settings, get_settings
-from ..knowledge import load_knowledge
-from ..profiles import PROFILES, get_profile
-from ..schemas.analysis import AnalyzeResponse
-from ..services.analysis_service import SUPPORTED_LANGUAGES, AnalysisService
+from ..core.config import APP_VERSION, Settings, get_settings
+from ..domains import DOMAINS, Domain, get_domain
+from ..schemas.api import AnalyzeResponse, DomainUIInfo, MetaResponse, ProfileInfo, SampleInfo
+from ..services.analysis_service import AnalysisService
+from .deps import get_service
 
 router = APIRouter(prefix="/api")
-
-
-@lru_cache
-def get_service() -> AnalysisService:
-    settings = get_settings()
-    return AnalysisService(settings, create_analyzer(settings))
 
 
 @router.get("/health")
@@ -24,40 +18,57 @@ def health() -> dict:
     return {"status": "ok"}
 
 
-@router.get("/meta")
+def _profile_info(d: Domain) -> ProfileInfo:
+    return ProfileInfo(
+        id=d.id,
+        name=d.name,
+        description=d.description,
+        source_language=d.source_language,
+        ocr_language=d.ocr_language,
+        ui=DomainUIInfo(
+            headline=d.ui.headline,
+            intro=d.ui.intro,
+            upload_title=d.ui.upload_title,
+            upload_hint=d.ui.upload_hint,
+            disclaimer=d.ui.disclaimer,
+            progress=list(d.ui.progress),
+        ),
+        samples=[SampleInfo(id=s.id, label=s.label, image=s.image) for s in d.samples],
+    )
+
+
+@router.get("/meta", response_model=MetaResponse)
 def meta(
     settings: Annotated[Settings, Depends(get_settings)],
     service: Annotated[AnalysisService, Depends(get_service)],
-) -> dict:
+) -> MetaResponse:
     """Everything the UI needs to configure itself."""
-    return {
-        "analyzer": service.analyzer_name,
-        "default_profile": settings.default_profile,
-        "profiles": [
-            {"id": p.id, "name": p.name, "description": p.description, "source_language": p.source_language}
-            for p in PROFILES.values()
-        ],
-        "languages": SUPPORTED_LANGUAGES,
-        "max_pages": settings.max_pages,
-        "max_total_upload_bytes": settings.max_total_upload_bytes,
-    }
+    return MetaResponse(
+        version=APP_VERSION,
+        analyzer=service.analyzer_name,
+        default_profile=settings.default_profile,
+        profiles=[_profile_info(d) for d in DOMAINS.values()],
+        languages=list(service.domain(None).target_languages),
+        max_pages=settings.max_pages,
+        max_total_upload_bytes=settings.max_total_upload_bytes,
+    )
 
 
 @router.get("/knowledge/{profile_id}")
 def knowledge(profile_id: str) -> dict:
-    """The knowledge graph (ontology + rules) behind a profile, as node-link JSON."""
+    """The knowledge graph (ontology + rules) behind a domain, as node-link JSON."""
     try:
-        profile = get_profile(profile_id)
+        domain = get_domain(profile_id)
     except KeyError as e:
         raise HTTPException(status_code=404, detail=str(e)) from None
-    return load_knowledge(profile.knowledge).to_json()
+    return domain.knowledge().to_json()
 
 
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze(
     service: Annotated[AnalysisService, Depends(get_service)],
     files: Annotated[list[UploadFile], File(description="One image per page, in order.")],
-    profile: Annotated[str | None, Form()] = None,
+    profile: Annotated[str | None, Form(description="Domain id, e.g. german_letter.")] = None,
     target_language: Annotated[str, Form()] = "English",
     sample: Annotated[str | None, Form(description="Bundled sample id (demo mode only).")] = None,
 ) -> AnalyzeResponse:

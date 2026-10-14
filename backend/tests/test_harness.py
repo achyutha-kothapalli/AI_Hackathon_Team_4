@@ -6,19 +6,21 @@ from pathlib import Path
 
 import pytest
 
-from app.harness import run_harness
-from app.harness import text
-from app.knowledge import KnowledgeError, KnowledgeGraph, load_knowledge
+from app.domains import get_domain
+from app.harness import run_harness, text
+from app.knowledge import KnowledgeError, KnowledgeGraph
 from app.knowledge.models import Ontology, RuleSet
 from app.schemas.analysis import AnalysisResult
 from evaluation import benchmark
 
 CASES = Path(__file__).resolve().parents[1] / "evaluation" / "cases"
-KG = load_knowledge("german_letters")
+KG = get_domain("german_letter").knowledge()
 
 
 def case(name: str) -> AnalysisResult:
-    return AnalysisResult.model_validate_json((CASES / name / "reference_output.json").read_text(encoding="utf-8"))
+    return AnalysisResult.model_validate_json(
+        (CASES / name / "reference_output.json").read_text(encoding="utf-8")
+    )
 
 
 # ------------------------------------------------------------------ knowledge graph
@@ -45,7 +47,7 @@ def test_classification_prefers_model_then_keywords():
 
 
 def test_invalid_knowledge_is_rejected():
-    folder = Path(__file__).resolve().parents[1] / "app" / "knowledge" / "german_letters"
+    folder = get_domain("german_letter").folder
     onto = json.loads((folder / "ontology.json").read_text(encoding="utf-8"))
     rules = json.loads((folder / "rules.json").read_text(encoding="utf-8"))
     rules["rules"][0]["applies_to"] = "no_such_class"

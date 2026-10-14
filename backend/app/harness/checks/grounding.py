@@ -10,9 +10,10 @@ fully independent check by finding the quote on the photo with OCR.)
 
 from datetime import date
 
-from ..schemas.analysis import AnalysisResult, KeyItem
-from ..schemas.harness import Finding, FindingCategory, ItemCheck, Severity
-from . import text
+from ...schemas.analysis import AnalysisResult, KeyItem
+from ...schemas.harness import Finding, FindingCategory, ItemCheck, Severity
+from .. import text
+from ..base import CheckContext, CheckOutput, transcript
 
 # Issue code -> (severity, message template)
 ISSUES: dict[str, tuple[Severity, str]] = {
@@ -46,10 +47,6 @@ ISSUES: dict[str, tuple[Severity, str]] = {
 BLOCKING = {Severity.critical, Severity.warning}
 
 
-def transcript(result: AnalysisResult) -> str:
-    return "\n".join(b.original for b in result.blocks)
-
-
 def _check(item: KeyItem, doc_alnum: str, doc_words: set[str], doc_dates: set) -> list[tuple[str, str]]:
     issues: list[tuple[str, str]] = []
     quote = item.source_quote or ""
@@ -75,7 +72,12 @@ def _check(item: KeyItem, doc_alnum: str, doc_words: set[str], doc_dates: set) -
             issues.append(("date_not_in_document", item.date))
         else:
             if d not in text.dates(quote):
-                issues.append(("date_not_in_quote" if d in doc_dates else "date_not_in_document", d.strftime("%d.%m.%Y")))
+                issues.append(
+                    (
+                        "date_not_in_quote" if d in doc_dates else "date_not_in_document",
+                        d.strftime("%d.%m.%Y"),
+                    )
+                )
     return issues
 
 
@@ -101,3 +103,13 @@ def check_grounding(result: AnalysisResult) -> tuple[dict[str, ItemCheck], list[
                 )
             )
     return checks, findings
+
+
+class GroundingCheck:
+    """'Nothing invented': every fact must be traceable to the letter text."""
+
+    name = "grounding"
+
+    def run(self, ctx: CheckContext) -> CheckOutput:
+        item_checks, findings = check_grounding(ctx.result)
+        return CheckOutput(findings=findings, item_checks=item_checks)

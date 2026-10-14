@@ -1,10 +1,16 @@
-"""Safeguards that don't depend on the document class."""
+"""Prompt-injection safeguard.
+
+The prompt tells the model to treat the letter as data and report AI-directed
+text in `suspicious_instructions`. This check additionally scans the letter
+text itself, so injection is caught even if the model obeyed it.
+"""
 
 import re
 
-from ..schemas.analysis import AnalysisResult, Confidence, ImageQuality
-from ..schemas.harness import Finding, FindingCategory, Severity
-from .rules import _context
+from ...schemas.analysis import AnalysisResult
+from ...schemas.harness import Finding, FindingCategory, Severity
+from .. import text
+from ..base import CheckContext, CheckOutput
 
 # Text in a letter that addresses an AI or tries to steer its output. Real
 # official letters never contain this, so any hit is treated as manipulation.
@@ -26,7 +32,7 @@ def check_injection(result: AnalysisResult, doc: str) -> list[Finding]:
     for pattern in INJECTION_PATTERNS:
         match = re.search(pattern, doc, re.IGNORECASE)
         if match:
-            evidence.append(_context(doc, match))
+            evidence.append(text.context(doc, match))
     if result.suspicious_instructions:
         evidence.append(result.suspicious_instructions.strip())
     if evidence:
@@ -43,37 +49,8 @@ def check_injection(result: AnalysisResult, doc: str) -> list[Finding]:
     return findings
 
 
-def check_quality(result: AnalysisResult) -> list[Finding]:
-    findings: list[Finding] = []
-    if result.image_quality == ImageQuality.poor:
-        findings.append(
-            Finding(
-                rule_id="Q-POOR-IMAGE",
-                category=FindingCategory.quality,
-                severity=Severity.warning,
-                message="The photo was hard to read. Compare every highlighted detail with the letter, "
-                "or retake the photo flat and in good light.",
-            )
-        )
-    for item in result.key_items:
-        if item.confidence == Confidence.low:
-            findings.append(
-                Finding(
-                    rule_id="Q-LOW-CONFIDENCE",
-                    category=FindingCategory.quality,
-                    severity=Severity.warning,
-                    message=f"“{item.label}” could not be read with certainty. Check it on the letter.",
-                    item_ids=[item.id],
-                    evidence=item.source_quote or None,
-                )
-            )
-    if result.confidence_note:
-        findings.append(
-            Finding(
-                rule_id="Q-MODEL-NOTE",
-                category=FindingCategory.quality,
-                severity=Severity.info,
-                message=result.confidence_note,
-            )
-        )
-    return findings
+class InjectionCheck:
+    name = "injection"
+
+    def run(self, ctx: CheckContext) -> CheckOutput:
+        return CheckOutput(findings=check_injection(ctx.result, ctx.transcript))

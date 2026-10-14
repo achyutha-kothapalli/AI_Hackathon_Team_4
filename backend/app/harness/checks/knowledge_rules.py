@@ -5,28 +5,15 @@ document's class or one of its ancestors run (see KnowledgeGraph.rules_for).
 """
 
 import re
-from dataclasses import dataclass, field
 
-from ..knowledge import KnowledgeGraph
-from ..knowledge import models as m
-from ..schemas.analysis import AnalysisResult, KeyItem
-from ..schemas.harness import Finding, FindingCategory, Resource, Severity
-from . import text
+from ...knowledge import KnowledgeGraph
+from ...knowledge import models as m
+from ...schemas.analysis import AnalysisResult, KeyItem
+from ...schemas.harness import Finding, FindingCategory, Severity
+from .. import text
+from ..base import CheckContext, CheckOutput
 
 _PERIOD = re.compile(r"\b(\w+)\s+(wochen?|monat(?:e|en|s)?|tag(?:e|en)?|werktag(?:e|en)?)\b")
-
-
-@dataclass
-class RuleOutcome:
-    findings: list[Finding] = field(default_factory=list)
-    escalation_reasons: list[str] = field(default_factory=list)
-    resources: list[Resource] = field(default_factory=list)
-
-    def add_resources(self, kg: KnowledgeGraph, ids: list[str]) -> None:
-        for rid in ids:
-            r = kg.resource(rid)
-            if all(x.id != r.id for x in self.resources):
-                self.resources.append(Resource(id=r.id, label=r.label, url=r.url, description=r.description))
 
 
 def _item_text(item: KeyItem) -> str:
@@ -51,19 +38,8 @@ def _legal_note(kg: KnowledgeGraph, legal_id: str | None) -> str | None:
     return f"{lb.label}: {lb.text}"
 
 
-def _context(doc: str, match: re.Match, width: int = 50) -> str:
-    """The match with some surrounding text, cut at word boundaries."""
-    start, end = max(match.start() - width, 0), min(match.end() + width, len(doc))
-    while start > 0 and not doc[start - 1].isspace():
-        start -= 1
-    while end < len(doc) and not doc[end].isspace():
-        end += 1
-    snippet = re.sub(r"\s+", " ", doc[start:end]).strip()
-    return ("… " if start > 0 else "") + snippet + (" …" if end < len(doc) else "")
-
-
-def apply_rules(result: AnalysisResult, kg: KnowledgeGraph, class_id: str, doc: str) -> RuleOutcome:
-    out = RuleOutcome()
+def apply_rules(result: AnalysisResult, kg: KnowledgeGraph, class_id: str, doc: str) -> CheckOutput:
+    out = CheckOutput()
     covered = [text.alnum(i.source_quote + " " + i.value) for i in result.key_items]
     is_authority = kg.has_attr(class_id, "is_authority")
 
@@ -96,7 +72,7 @@ def apply_rules(result: AnalysisResult, kg: KnowledgeGraph, class_id: str, doc: 
                         category=FindingCategory.completeness,
                         severity=rule.severity,
                         message=rule.message.format(fact=fact),
-                        evidence=_context(doc, match),
+                        evidence=text.context(doc, match),
                         legal_basis=legal,
                     )
                 )
@@ -127,7 +103,7 @@ def apply_rules(result: AnalysisResult, kg: KnowledgeGraph, class_id: str, doc: 
                         category=rule.category,
                         severity=rule.severity,
                         message=rule.message,
-                        evidence=_context(doc, match),
+                        evidence=text.context(doc, match),
                         legal_basis=legal,
                     )
                 )
@@ -174,7 +150,16 @@ def apply_rules(result: AnalysisResult, kg: KnowledgeGraph, class_id: str, doc: 
                         category=FindingCategory.escalation,
                         severity=Severity.info,
                         message=rule.reason.format(fact=match.group(0)),
-                        evidence=_context(doc, match),
+                        evidence=text.context(doc, match),
                     )
                 )
     return out
+
+
+class KnowledgeRulesCheck:
+    """Runs the domain's rules.json for the document's class and all its ancestors."""
+
+    name = "knowledge_rules"
+
+    def run(self, ctx: CheckContext) -> CheckOutput:
+        return apply_rules(ctx.result, ctx.knowledge, ctx.document_class.id, ctx.transcript)

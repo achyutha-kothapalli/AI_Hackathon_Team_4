@@ -1,7 +1,7 @@
-"""Prompt text shared by all profiles. Profile-specific guidance is appended."""
+"""Prompt text shared by all domains. Domain-specific guidance and the domain's
+document classes (from its knowledge graph) are appended."""
 
-from ..knowledge import load_knowledge
-from ..profiles import Profile
+from ..domains import Domain
 
 BASE_INSTRUCTIONS = """\
 You help people understand documents written in a language they do not read.
@@ -62,14 +62,14 @@ Document classes (set `document_class` to the most specific matching id, or
 """
 
 
-def build_system_prompt(profile: Profile, target_language: str) -> str:
+def build_system_prompt(domain: Domain, target_language: str) -> str:
     return (
         BASE_INSTRUCTIONS.format(
             target_language=target_language,
-            class_catalog=load_knowledge(profile.knowledge).prompt_catalog(),
+            class_catalog=domain.knowledge().prompt_catalog(),
         )
         + "\n## Use case: "
-        + profile.name
+        + domain.name
         + "\n"
-        + profile.instructions
+        + domain.instructions
     )
