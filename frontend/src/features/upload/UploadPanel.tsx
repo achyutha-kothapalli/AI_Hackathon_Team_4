@@ -18,6 +18,8 @@ interface Props {
   privacy?: { requires_consent: boolean; consent_text: string | null; recommend_eu_processing: boolean };
   consent: boolean;
   onConsent: (v: boolean) => void;
+  redact: boolean;
+  onRedact: (v: boolean) => void;
 }
 
 export function UploadPanel({
@@ -36,6 +38,8 @@ export function UploadPanel({
   privacy,
   consent,
   onConsent,
+  redact,
+  onRedact,
 }: Props) {
   const needsConsent = privacy?.requires_consent ?? false;
   const consentText = (privacy?.consent_text ?? "")
@@ -126,6 +130,13 @@ export function UploadPanel({
               </li>
             ))}
           </ol>
+          <label className="redact-option">
+            <input type="checkbox" checked={redact} onChange={(e) => onRedact(e.target.checked)} />
+            <span>
+              🔒 <strong>Hide personal details before sending</strong> — name, date of birth, address and insurance
+              numbers are blacked out on your device. Your original photo is never uploaded.
+            </span>
+          </label>
           {needsConsent && (
             <div className="consent">
               <label>
