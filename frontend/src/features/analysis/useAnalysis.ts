@@ -16,8 +16,9 @@ import {
   type Verification,
 } from "../ocr/verifyHighlights";
 import { fitToBudget, preparePages, releasePages, type PreparedPage } from "../upload/preparePages";
+import { DEFAULT_LANGUAGE, PROFILE, statusAfterCancel, type Status } from "./screen";
 
-export type Status = "idle" | "preparing" | "analyzing" | "done";
+export type { Status } from "./screen";
 export type OcrState = "running" | "done" | "failed";
 
 
@@ -31,15 +32,16 @@ export function useAnalysis() {
   const [ocrState, setOcrState] = useState<OcrState>("running");
   const [coverage, setCoverage] = useState<Coverage | null>(null);
   const [sample, setSample] = useState<string | null>(null);
-  const [targetLanguage, setTargetLanguage] = useState("English");
-  const [profileId, setProfileId] = useState<string | null>(null); // null = backend default
+  const [targetLanguage, setTargetLanguage] = useState(DEFAULT_LANGUAGE);
   const [consent, setConsent] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
+  const responseRef = useRef<AnalyzeResponse | null>(null);
+  responseRef.current = response;
 
   // The active domain pack configures wording, samples, languages, privacy and OCR language.
-  const activeProfile = profileId ?? meta.default_profile;
+  const activeProfile = PROFILE;
   const domain = meta.profiles.find((p) => p.id === activeProfile);
   const ui = domain?.ui ?? FALLBACK_UI;
   const samples = domain?.samples ?? FALLBACK_SAMPLES;
@@ -112,54 +114,77 @@ export function useAnalysis() {
     });
   }, []);
 
-  const analyze = useCallback(async () => {
-    const current = pagesRef.current;
-    if (!current.length) return;
-    if (needsConsent && !consent) {
-      setError("Please confirm the privacy consent first.");
-      return;
-    }
-    setError(null);
-    setStatus("analyzing");
+  const run = useCallback(
+    async (language: string) => {
+      const current = pagesRef.current;
+      if (!current.length) return;
+      if (needsConsent && !consent) {
+        setError("Please confirm the privacy consent first.");
+        return;
+      }
+      setError(null);
+      setStatus("analyzing");
+      setVerifications(null);
+      setCoverage(null);
+      setOcrState("running");
+      abortRef.current = new AbortController();
+
+      // OCR runs in parallel with the AI call; it's only used to verify.
+      const ocr: Promise<OcrWord[][] | null> = ocrPages(
+        current,
+        domain?.ocr_language ?? ocrLanguageFor(domain?.source_language ?? "German"),
+      ).catch((e) => {
+        console.warn("OCR verification unavailable", e);
+        return null;
+      });
+
+      try {
+        const blobs = await fitToBudget(current, meta.max_total_upload_bytes);
+        const res = await analyzeDocument(blobs, {
+          targetLanguage: language,
+          profile: activeProfile,
+          sample: sample ?? undefined,
+          consent,
+          signal: abortRef.current.signal,
+        });
+        setResponse(res);
+        setStatus("done");
+        const words = await ocr;
+        if (words) {
+          setVerifications(verifyItems(highlightItems(res.result), words));
+          setCoverage(textCoverage(words, res.result.blocks));
+          setOcrState("done");
+        } else {
+          setOcrState("failed");
+        }
+      } catch (e) {
+        if ((e as Error).name === "AbortError") return;
+        setError(e instanceof Error ? e.message : "Something went wrong.");
+        setStatus("idle");
+      }
+    },
+    [meta, domain, activeProfile, sample, consent, needsConsent],
+  );
+
+  const analyze = useCallback(() => run(targetLanguage), [run, targetLanguage]);
+  const reanalyze = useCallback(
+    (language: string) => {
+      setTargetLanguage(language);
+      return run(language);
+    },
+    [run],
+  );
+  const cancel = useCallback(() => {
+    abortRef.current?.abort();
+    setStatus(statusAfterCancel(responseRef.current !== null));
+  }, []);
+  const backToStart = useCallback(() => {
+    setResponse(null);
     setVerifications(null);
     setCoverage(null);
-    setOcrState("running");
-    abortRef.current = new AbortController();
-
-    // OCR runs in parallel with the AI call; it's only used to verify.
-    const ocr: Promise<OcrWord[][] | null> = ocrPages(
-      current,
-      domain?.ocr_language ?? ocrLanguageFor(domain?.source_language ?? "German"),
-    ).catch((e) => {
-      console.warn("OCR verification unavailable", e);
-      return null;
-    });
-
-    try {
-      const blobs = await fitToBudget(current, meta.max_total_upload_bytes);
-      const res = await analyzeDocument(blobs, {
-        targetLanguage,
-        profile: activeProfile,
-        sample: sample ?? undefined,
-        consent,
-        signal: abortRef.current.signal,
-      });
-      setResponse(res);
-      setStatus("done");
-      const words = await ocr;
-      if (words) {
-        setVerifications(verifyItems(highlightItems(res.result), words));
-        setCoverage(textCoverage(words, res.result.blocks));
-        setOcrState("done");
-      } else {
-        setOcrState("failed");
-      }
-    } catch (e) {
-      if ((e as Error).name === "AbortError") return;
-      setError(e instanceof Error ? e.message : "Something went wrong.");
-      setStatus("idle");
-    }
-  }, [meta, domain, activeProfile, targetLanguage, sample, consent, needsConsent]);
+    setError(null);
+    setStatus("idle");
+  }, []);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
@@ -173,20 +198,9 @@ export function useAnalysis() {
     setStatus("idle");
   }, []);
 
-  const switchProfile = useCallback(
-    (id: string) => {
-      reset();
-      setConsent(false); // consent is per use case
-      setProfileId(id);
-    },
-    [reset],
-  );
-
   return {
     meta,
     domain,
-    activeProfile,
-    switchProfile,
     languages,
     needsConsent,
     consent,
@@ -207,6 +221,11 @@ export function useAnalysis() {
     removePage,
     movePage,
     analyze,
+    reanalyze,
+    cancel,
+    backToStart,
     reset,
   };
 }
+
+export type Analysis = ReturnType<typeof useAnalysis>;

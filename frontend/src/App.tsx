@@ -23,22 +23,6 @@ export default function App() {
           <span>{APP_NAME}</span>
         </div>
         <div className="topbar-controls">
-          {a.meta.profiles.length > 1 && (
-            <label className="lang">
-              <span>Document</span>
-              <select
-                value={a.activeProfile}
-                onChange={(e) => a.switchProfile(e.target.value)}
-                disabled={a.status === "analyzing"}
-              >
-                {a.meta.profiles.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
           <label className="lang">
             <span>Explain in</span>
             <select
@@ -80,7 +64,7 @@ export default function App() {
             onAddFiles={a.addFiles}
             onRemove={a.removePage}
             onMove={a.movePage}
-            onAnalyze={a.analyze}
+            onAnalyze={() => void a.analyze()}
             onTrySample={a.trySample}
             samples={a.samples}
             title={a.ui.upload_title}
