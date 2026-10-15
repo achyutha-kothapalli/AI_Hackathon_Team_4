@@ -1,0 +1,47 @@
+/* Printable A4 handout. Literal #000 / #fff / #999 are print colours (black-and-white safety). */
+.handout { font-family: var(--font-sans); color: #000; line-height: 1.45; }
+.handout[data-size="normal"] { font-size: 12pt; }
+.handout[data-size="large"] { font-size: 14pt; }
+.handout h1 { font-size: 1.5em; line-height: 1.2; margin: 0 0 0.6em; }
+.handout h2 { font-size: 1.15em; margin: 0; }
+.handout p { margin: 0.3em 0; }
+.handout ol, .handout ul { margin: 0.3em 0; }
+.handout [data-block] { display: flow-root; }            /* margins stay inside, so measured heights add up */
+.handout .h-block { padding-top: 0.9em; }               /* spacing lives inside blocks so heights add up */
+.handout .h-section { display: grid; grid-template-columns: 2.2em 1fr; gap: 0 0.5em; border-top: 1px solid #000; padding-top: 0.5em; margin-bottom: 0.4em; }
+.handout .h-marker { font: 400 0.8em/1.6 var(--font-mono); }
+.handout .mono { font-family: var(--font-mono); }
+.handout .h-hospital { font-weight: 600; }
+.handout .h-small { font-size: 0.85em; }
+.handout .h-muted { color: var(--muted-foreground); }
+.handout .h-rows { list-style: none; padding: 0; }
+.handout .h-row { border-top: 1px solid #999; padding: 0.35em 0; }
+.handout .med-row { display: grid; grid-template-columns: 2fr 2fr repeat(var(--slots), 0.8fr); gap: 0.4em; border-top: 1px solid #999; padding: 0.35em 0; }
+.handout .med-head { font-weight: 600; font-size: 0.85em; border-top: 0; }
+.handout .med-notes { grid-column: 1 / -1; font-size: 0.85em; }
+.handout .tick { display: inline-block; width: 0.9em; height: 0.9em; border: 1.5px solid #000; border-radius: 2px; vertical-align: -0.1em; margin-inline-start: 0.3em; }
+.handout .emergency { border: 2px solid var(--destructive); background: var(--destructive-surface); border-radius: 6px; padding: 0.6em 0.8em; margin-bottom: 0.6em; display: grid; grid-template-columns: auto 1fr; gap: 0.2em 0.6em; align-items: start; }
+.handout .emergency .emergency-text { grid-column: 2; }
+.handout .emergency .label { grid-column: 2; font-size: 0.8em; }
+.handout .write-in { display: inline-block; min-width: 9em; border-bottom: 1px solid #000; margin-inline-end: 1em; }
+.handout .write-in.short { min-width: 6em; }
+.handout .is-unsure { outline: 1px dashed var(--warning); outline-offset: 2px; }
+.handout .unsure-tag { font: inherit; font-size: 0.75em; background: none; border: 0; padding: 0; margin-inline-start: 0.4em; cursor: pointer; }
+.handout .unsure-tag:focus-visible, .handout .unsure-tag:hover { outline: 2px solid var(--ring); outline-offset: 2px; }
+.handout-measure { position: absolute; left: -10000px; top: 0; visibility: hidden; width: calc(210mm - 32mm); }
+.handout-preview { display: grid; gap: 24px; justify-items: center; overflow-x: auto; padding: 24px 0; }
+.sheet { width: 210mm; height: 297mm; background: #fff; border: 1px solid var(--border); box-shadow: var(--shadow-lg); position: relative; overflow: hidden; }
+.sheet[data-overflow] { outline: 2px solid var(--destructive); }
+.sheet-inner { padding: 14mm 16mm; }
+.sheet-number { position: absolute; right: 16mm; bottom: 7mm; font: 400 9pt var(--font-mono); }
+.print-root { display: none; }
+
+@media print {
+  @page { size: A4; margin: 0; }
+  body > :not(.print-root) { display: none !important; }
+  .print-root { display: block; }
+  .print-root .sheet { border: 0; box-shadow: none; outline: 0; break-after: page; }
+  .preview-only { display: none !important; }
+  .handout .is-unsure { outline: 0; }
+  .handout .emergency { background: none; border-color: #000; }
+}

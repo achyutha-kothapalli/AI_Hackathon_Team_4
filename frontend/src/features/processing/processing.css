@@ -1,0 +1,8 @@
+.narrow { max-width: 760px; }
+.processing { padding-top: 48px; padding-bottom: 48px; display: grid; gap: 24px; }
+.processing h1 { font-size: 30px; line-height: 1.2; letter-spacing: -0.02em; }
+.processing .step { display: flex; align-items: center; gap: 12px; }
+.processing .step > span:nth-child(2) { flex: 1; }
+.step-done { color: var(--success); }
+.step-pending { color: var(--muted-foreground); }
+.processing .actions { display: flex; flex-wrap: wrap; gap: 12px; }
