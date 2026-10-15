@@ -332,6 +332,9 @@ button {
 /* ---------- document viewer ---------- */
 .viewer {
   display: grid;
+  /* Rows must take each page's full height: a capped viewer would otherwise squeeze them on top of each other. */
+  grid-auto-rows: max-content;
+  align-content: start;
   gap: 16px;
   position: sticky;
   top: 12px;

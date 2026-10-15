@@ -44,7 +44,31 @@ export function DocumentViewer({
 }: Props) {
   const highlightRefs = useRef(new Map<string, HTMLElement>());
   const rootRef = useRef<HTMLDivElement>(null);
+  const pageRefs = useRef<(HTMLElement | null)[]>([]);
   const [width, setWidth] = useState(0);
+  const [visiblePage, setVisiblePage] = useState(0);
+
+  // Which page fills most of the scroll box; drives the page tabs.
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || pages.length < 2) return;
+    const ratios = new Map<Element, number>();
+    const io = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((e) => ratios.set(e.target, e.intersectionRatio));
+        let best = 0;
+        pageRefs.current.forEach((el, i) => {
+          if (el && (ratios.get(el) ?? 0) > (ratios.get(pageRefs.current[best]!) ?? 0)) best = i;
+        });
+        setVisiblePage(best);
+      },
+      { root, threshold: [0, 0.25, 0.5, 0.75, 1] },
+    );
+    pageRefs.current.forEach((el) => el && io.observe(el));
+    return () => io.disconnect();
+  }, [pages.length]);
+
+  const goToPage = (i: number) => pageRefs.current[i]?.scrollIntoView({ behavior: "smooth", block: "start" });
 
   useLayoutEffect(() => {
     const el = rootRef.current;
@@ -79,69 +103,94 @@ export function DocumentViewer({
   }, [activeItemId]);
 
   return (
-    <div className="viewer" ref={rootRef}>
-      {pages.map((page, pageIndex) => {
-        const blocks = result.blocks.filter((b) => b.page === pageIndex);
-        const pageItems = items.filter((k) => k.page === pageIndex);
-        return (
-          <figure
-            key={page.id}
-            className={`page mode-${mode}`}
-            style={{ aspectRatio: `${page.width} / ${page.height}` }}
-          >
-            <img src={page.url} alt={`Seite ${pageIndex + 1} des hochgeladenen Dokuments`} />
+    <div className="viewer-wrap">
+      {pages.length > 1 && (
+        <nav className="viewer-pages" aria-label="Seiten des Originals">
+          {pages.map((page, i) => {
+            const count = items.filter((k) => k.page === i).length;
+            return (
+              <button
+                key={page.id}
+                type="button"
+                className="viewer-page-tab"
+                aria-current={visiblePage === i ? "page" : undefined}
+                aria-label={`Seite ${i + 1} von ${pages.length}, ${count} Markierungen`}
+                onClick={() => goToPage(i)}
+              >
+                Seite {i + 1}
+                {count > 0 && <span className="viewer-page-count">{count}</span>}
+              </button>
+            );
+          })}
+        </nav>
+      )}
+      <div className="viewer" ref={rootRef}>
+        {pages.map((page, pageIndex) => {
+          const blocks = result.blocks.filter((b) => b.page === pageIndex);
+          const pageItems = items.filter((k) => k.page === pageIndex);
+          return (
+            <figure
+              key={page.id}
+              ref={(el) => {
+                pageRefs.current[pageIndex] = el;
+              }}
+              className={`page mode-${mode}`}
+              style={{ aspectRatio: `${page.width} / ${page.height}` }}
+            >
+              <img src={page.url} alt={`Seite ${pageIndex + 1} des hochgeladenen Dokuments`} />
 
-            {mode !== "original" &&
-              blocks.map((block) => (
-                <div
-                  key={block.id}
-                  className={`block ${activeBlockId === block.id ? "is-active" : ""}`}
-                  style={pct(block.bbox)}
-                  onMouseEnter={() => onSelectBlock(block.id)}
-                  onMouseLeave={() => onSelectBlock(null)}
-                  title={mode === "translation" ? block.original : block.translation}
-                >
-                  {mode === "translation" && <FitText text={block.translation} />}
-                </div>
-              ))}
-
-            {mode !== "original" &&
-              pageItems.map((item) => {
-                const v = verifications?.[item.id];
-                const rects = v?.rects ?? [item.bbox];
-                const tone = KIND_META[item.kind].tone;
-                const number = items.indexOf(item) + 1;
-                return rects.map((r, i) => (
-                  <button
-                    key={`${item.id}-${i}`}
-                    ref={(el) => {
-                      if (el && i === 0) highlightRefs.current.set(item.id, el);
-                    }}
-                    type="button"
-                    className={`highlight tone-${tone} ${activeItemId === item.id ? "is-active" : ""} ${
-                      v && !v.verified ? "is-approx" : ""
-                    }`}
-                    style={pct(r)}
-                    onClick={() => onSelectItem(item.id)}
-                    aria-label={`${item.label}: ${item.value}`}
+              {mode !== "original" &&
+                blocks.map((block) => (
+                  <div
+                    key={block.id}
+                    className={`block ${activeBlockId === block.id ? "is-active" : ""}`}
+                    style={pct(block.bbox)}
+                    onMouseEnter={() => onSelectBlock(block.id)}
+                    onMouseLeave={() => onSelectBlock(null)}
+                    title={mode === "translation" ? block.original : block.translation}
                   >
-                    {i === 0 && (
-                      <span className="marker" style={{ "--step": steps.get(item.id) ?? 0 } as CSSProperties}>
-                        {number}
-                      </span>
-                    )}
-                  </button>
-                ));
-              })}
+                    {mode === "translation" && <FitText text={block.translation} />}
+                  </div>
+                ))}
 
-            {pages.length > 1 && (
-              <figcaption>
-                Seite {pageIndex + 1} von {pages.length}
-              </figcaption>
-            )}
-          </figure>
-        );
-      })}
+              {mode !== "original" &&
+                pageItems.map((item) => {
+                  const v = verifications?.[item.id];
+                  const rects = v?.rects ?? [item.bbox];
+                  const tone = KIND_META[item.kind].tone;
+                  const number = items.indexOf(item) + 1;
+                  return rects.map((r, i) => (
+                    <button
+                      key={`${item.id}-${i}`}
+                      ref={(el) => {
+                        if (el && i === 0) highlightRefs.current.set(item.id, el);
+                      }}
+                      type="button"
+                      className={`highlight tone-${tone} ${activeItemId === item.id ? "is-active" : ""} ${
+                        v && !v.verified ? "is-approx" : ""
+                      }`}
+                      style={pct(r)}
+                      onClick={() => onSelectItem(item.id)}
+                      aria-label={`${item.label}: ${item.value}`}
+                    >
+                      {i === 0 && (
+                        <span className="marker" style={{ "--step": steps.get(item.id) ?? 0 } as CSSProperties}>
+                          {number}
+                        </span>
+                      )}
+                    </button>
+                  ));
+                })}
+
+              {pages.length > 1 && (
+                <figcaption>
+                  Seite {pageIndex + 1} von {pages.length}
+                </figcaption>
+              )}
+            </figure>
+          );
+        })}
+      </div>
     </div>
   );
 }
