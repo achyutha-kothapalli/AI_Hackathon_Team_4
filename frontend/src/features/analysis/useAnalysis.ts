@@ -6,6 +6,7 @@ import { analyzeDocument, fetchMeta } from "../../api/client";
 import type { AnalyzeResponse, Meta } from "../../api/types";
 import { FALLBACK_META, FALLBACK_SAMPLES, FALLBACK_UI } from "../../config/fallback";
 import { highlightItems } from "../../lib/highlights";
+import { applyRedactions, findPersonalData, type Redaction } from "../privacy/redact";
 import {
   ocrLanguageFor,
   ocrPages,
@@ -20,6 +21,7 @@ import { DEFAULT_LANGUAGE, PROFILE, statusAfterCancel, type Status } from "./scr
 
 export type { Status } from "./screen";
 export type OcrState = "running" | "done" | "failed";
+export type Phase = "redacting" | "analyzing";
 
 
 export function useAnalysis() {
@@ -34,6 +36,11 @@ export function useAnalysis() {
   const [sample, setSample] = useState<string | null>(null);
   const [targetLanguage, setTargetLanguage] = useState(DEFAULT_LANGUAGE);
   const [consent, setConsent] = useState(false);
+  // Hide personal details before upload; null = use the domain's default.
+  const [redactChoice, setRedactChoice] = useState<boolean | null>(null);
+  const [redactions, setRedactions] = useState<Redaction[] | null>(null);
+  const [sentPages, setSentPages] = useState<PreparedPage[] | null>(null);
+  const [phase, setPhase] = useState<Phase>("analyzing");
   const abortRef = useRef<AbortController | null>(null);
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
@@ -47,6 +54,7 @@ export function useAnalysis() {
   const samples = domain?.samples ?? FALLBACK_SAMPLES;
   const languages = domain?.languages?.length ? domain.languages : meta.languages;
   const needsConsent = domain?.privacy.requires_consent ?? false;
+  const redact = redactChoice ?? domain?.privacy.redact_personal_data ?? false;
 
   // Keep the target language valid for the active domain (e.g. "Einfache Sprache" for medical).
   useEffect(() => {
@@ -127,26 +135,53 @@ export function useAnalysis() {
       setStatus("analyzing");
       setVerifications(null);
       setCoverage(null);
+      setRedactions(null);
+      setSentPages(null);
       setOcrState("running");
       abortRef.current = new AbortController();
+      const signal = abortRef.current.signal;
+      const lang = domain?.ocr_language ?? ocrLanguageFor(domain?.source_language ?? "German");
 
-      // OCR runs in parallel with the AI call; it's only used to verify.
-      const ocr: Promise<OcrWord[][] | null> = ocrPages(
-        current,
-        domain?.ocr_language ?? ocrLanguageFor(domain?.source_language ?? "German"),
-      ).catch((e) => {
-        console.warn("OCR verification unavailable", e);
-        return null;
-      });
+      let ocr: Promise<OcrWord[][] | null>;
+      let toSend = current;
+      if (redact) {
+        // Data minimisation: OCR first, black out personal data on a copy, upload only the copy.
+        setPhase("redacting");
+        let words: OcrWord[][];
+        try {
+          words = await ocrPages(current, lang);
+        } catch (e) {
+          console.warn("OCR unavailable, cannot redact", e);
+          setError(
+            "Personal details could not be hidden automatically (text recognition is unavailable). " +
+              "Nothing was sent. Switch off “Hide personal details” to send the original, or try again.",
+          );
+          setStatus("idle");
+          return;
+        }
+        if (signal.aborted) return; // cancelled while hiding personal details
+        const found = findPersonalData(words);
+        toSend = await applyRedactions(current, found);
+        setRedactions(found);
+        setSentPages(toSend);
+        ocr = Promise.resolve(words);
+      } else {
+        // OCR runs in parallel with the AI call; it's only used to verify.
+        ocr = ocrPages(current, lang).catch((e) => {
+          console.warn("OCR verification unavailable", e);
+          return null;
+        });
+      }
+      setPhase("analyzing");
 
       try {
-        const blobs = await fitToBudget(current, meta.max_total_upload_bytes);
+        const blobs = await fitToBudget(toSend, meta.max_total_upload_bytes);
         const res = await analyzeDocument(blobs, {
           targetLanguage: language,
           profile: activeProfile,
           sample: sample ?? undefined,
           consent,
-          signal: abortRef.current.signal,
+          signal,
         });
         setResponse(res);
         setStatus("done");
@@ -164,7 +199,7 @@ export function useAnalysis() {
         setStatus("idle");
       }
     },
-    [meta, domain, activeProfile, sample, consent, needsConsent],
+    [meta, domain, activeProfile, sample, consent, needsConsent, redact],
   );
 
   const analyze = useCallback(() => run(targetLanguage), [run, targetLanguage]);
@@ -183,6 +218,8 @@ export function useAnalysis() {
     setResponse(null);
     setVerifications(null);
     setCoverage(null);
+    setRedactions(null);
+    setSentPages(null);
     setError(null);
     setStatus("idle");
   }, []);
@@ -194,6 +231,11 @@ export function useAnalysis() {
     setResponse(null);
     setVerifications(null);
     setCoverage(null);
+    setRedactions(null);
+    setSentPages((prev) => {
+      prev?.forEach((p) => p.id.endsWith("-redacted") && URL.revokeObjectURL(p.url));
+      return null;
+    });
     setSample(null);
     setError(null);
     setStatus("idle");
@@ -206,6 +248,11 @@ export function useAnalysis() {
     needsConsent,
     consent,
     setConsent,
+    redact,
+    setRedact: setRedactChoice,
+    redactions,
+    sentPages,
+    phase,
     ui,
     samples,
     pages,

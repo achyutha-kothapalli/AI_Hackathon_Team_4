@@ -25,3 +25,12 @@
   .handout-settings { position: static; }
 }
 .demo-strip { padding-top: 16px; }
+
+/* Redaction: what was actually sent to the AI service */
+.sent-version { border-top: 1px solid var(--border); padding-top: 12px; }
+.sent-version summary { display: inline-flex; align-items: center; gap: 8px; cursor: pointer; font-weight: 600; font-size: 14px; }
+.sent-version summary:focus-visible { outline: var(--ring-width, 2px) solid var(--ring); outline-offset: 2px; }
+.sent-version p { margin: 8px 0 12px; }
+.sent-pages { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+.sent-pages img { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); background: #fff; }
+@media print { .sent-version { display: none; } }

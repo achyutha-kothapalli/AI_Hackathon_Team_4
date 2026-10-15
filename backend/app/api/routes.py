@@ -47,6 +47,7 @@ def _profile_info(d: Domain) -> ProfileInfo:
             requires_consent=d.privacy.requires_consent,
             consent_text=d.privacy.consent_text,
             recommend_eu_processing=d.privacy.recommend_eu_processing,
+            redact_personal_data=d.privacy.redact_personal_data,
         ),
         languages=list(d.target_languages),
     )

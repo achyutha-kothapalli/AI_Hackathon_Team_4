@@ -82,7 +82,8 @@ Add one JSON object to the domain's `rules.json`. Rule types and examples are in
 
 ### Add a field to the analysis
 
-Change `backend/app/schemas/analysis.py` and `frontend/src/api/types.ts` together.
+Change `backend/app/schemas/analysis.py` and `frontend/src/api/types.ts` together,
+then regenerate the API contract: `python scripts/export_openapi.py` (in `backend/`).
 The JSON Schema sent to the AI is generated from the Pydantic model, so the AI
 starts filling the field immediately. Update the sample answers
 (`python scripts/make_samples.py` regenerates them) and display the field in the UI.

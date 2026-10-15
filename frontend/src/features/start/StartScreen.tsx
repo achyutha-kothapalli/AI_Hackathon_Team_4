@@ -24,6 +24,8 @@ export interface StartProps {
   needsConsent: boolean;
   consent: boolean;
   setConsent: (value: boolean) => void;
+  redact: boolean;
+  setRedact: (value: boolean) => void;
   analyze: () => unknown;
 }
 
@@ -140,21 +142,29 @@ export function StartScreen({ a }: { a: StartProps }) {
         )}
       </section>
 
-      {a.needsConsent && (
-        <section>
-          <SectionHead marker="03">Einwilligung</SectionHead>
+      <section>
+        <SectionHead marker="03">Datenschutz</SectionHead>
+        <label className="checkbox">
+          <input type="checkbox" checked={a.redact} onChange={(e) => a.setRedact(e.target.checked)} />
+          <span>
+            <strong>Persönliche Angaben vor dem Senden schwärzen</strong> – Name, Geburtsdatum, Adresse und
+            Versichertennummer werden auf diesem Gerät geschwärzt. Das Originalfoto wird nicht hochgeladen
+            (Datenminimierung, Art. 5 DSGVO).
+          </span>
+        </label>
+        {a.needsConsent && (
           <label className="checkbox">
             <input type="checkbox" checked={a.consent} onChange={(e) => a.setConsent(e.target.checked)} />
             <span>{consentText}</span>
           </label>
-          {a.domain?.privacy.recommend_eu_processing && !eu && (
-            <Banner tone="warning">
-              Der KI-Dienst verarbeitet Daten außerhalb der EU ({region}). Für Gesundheitsdaten wird ein EU-Anbieter
-              empfohlen.
-            </Banner>
-          )}
-        </section>
-      )}
+        )}
+        {a.needsConsent && a.domain?.privacy.recommend_eu_processing && !eu && (
+          <Banner tone="warning">
+            Der KI-Dienst verarbeitet Daten außerhalb der EU ({region}). Für Gesundheitsdaten wird ein EU-Anbieter
+            empfohlen.
+          </Banner>
+        )}
+      </section>
 
       <div className="start-submit">
         <button

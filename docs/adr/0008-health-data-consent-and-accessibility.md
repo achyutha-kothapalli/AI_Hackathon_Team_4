@@ -16,6 +16,9 @@ special category under Art. 9 GDPR, and misunderstanding a dose can cause harm.
 - **Explicit consent, enforced server-side.** Domains declare
   `privacy.requires_consent`; the backend answers HTTP 428 without `consent=true`,
   the UI shows the consent text with the actual processor and region.
+- **Redaction before upload (data minimisation).** The browser OCRs each page and
+  blacks out personal identifiers on a copy; only the copy is uploaded. Default on
+  for health data, controlled by `privacy.redact_personal_data`.
 - **Transparency about processing.** Each analyzer declares `processing`
   (provider, region, EU or not). The UI warns when health data would leave the EU.
 - **No advice beyond the document.** A new rule type checks the AI's own wording

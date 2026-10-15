@@ -1,4 +1,4 @@
-import { Columns2, Printer } from "lucide-react";
+import { Columns2, Lock, Printer } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Banner } from "../../components/Banner";
 import { StatusTag } from "../../components/StatusTag";
@@ -62,6 +62,24 @@ export function Workspace({ a }: { a: Analysis }) {
         <Banner tone="danger" role="alert" title="Das hat nicht geklappt">
           {a.error}
         </Banner>
+      )}
+      {a.redactions && a.sentPages && (
+        <details className="sent-version">
+          <summary>
+            <Lock size={16} aria-hidden="true" />
+            {a.redactions.length} persönliche {a.redactions.length === 1 ? "Angabe" : "Angaben"} vor dem Senden
+            geschwärzt – gesendete Version ansehen
+          </summary>
+          <p className="muted">
+            Nur diese Version wurde an den KI-Dienst gesendet ({a.meta.processing.provider}). Das Originalfoto hat
+            dieses Gerät nicht verlassen.
+          </p>
+          <div className="sent-pages">
+            {a.sentPages.map((p, i) => (
+              <img key={p.id} src={p.url} alt={`Gesendete Seite ${i + 1} mit geschwärzten persönlichen Angaben`} />
+            ))}
+          </div>
+        </details>
       )}
       {needsAttention(res) && (
         <Banner tone="warning" title="Bitte vor dem Drucken prüfen">

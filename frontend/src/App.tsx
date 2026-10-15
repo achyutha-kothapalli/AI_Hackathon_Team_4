@@ -23,7 +23,14 @@ export default function App() {
         </div>
       )}
       {screen === "start" && <StartScreen a={a} />}
-      {screen === "processing" && <ProcessingScreen onCancel={a.cancel} sampleName={a.pages[0]?.sourceName} />}
+      {screen === "processing" && (
+        <ProcessingScreen
+          onCancel={a.cancel}
+          sampleName={a.pages[0]?.sourceName}
+          redacting={a.redact}
+          phase={a.phase}
+        />
+      )}
       {screen === "read-error" && (
         <ReadErrorScreen
           onRetry={a.backToStart}

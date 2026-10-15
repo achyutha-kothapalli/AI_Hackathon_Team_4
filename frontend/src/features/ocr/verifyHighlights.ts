@@ -13,6 +13,7 @@ export interface OcrWord {
   norm: string;
   line: number;
   bbox: BBox; // normalised to 0..1000 like the API
+  redacted?: boolean; // hidden before upload (personal data), see features/privacy
 }
 
 export interface Verification {
@@ -164,7 +165,8 @@ export interface Coverage {
 export function textCoverage(ocr: OcrWord[][], blocks: TextBlock[]): Coverage | null {
   const transcribed = new Set(blocks.flatMap((b) => b.original.split(/\s+/).map(normalize)).filter(Boolean));
   const list = [...transcribed];
-  const words = ocr.flat().filter((w) => w.norm.length >= 4 && /\p{L}/u.test(w.norm));
+  // Words hidden before upload are not expected in the AI's transcription.
+  const words = ocr.flat().filter((w) => !w.redacted && w.norm.length >= 4 && /\p{L}/u.test(w.norm));
   if (words.length < 20) return null;
   const missing: string[] = [];
   let hit = 0;

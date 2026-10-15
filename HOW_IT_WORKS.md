@@ -202,6 +202,8 @@ reasons: [docs/adr/](docs/adr/).
 | `CONTRIBUTING.md` | Recipes: add a domain, rule, check, analyzer; workflow and quality gates |
 | `CLAUDE.md` | Project conventions and commands for Claude Code (read automatically) |
 | `PRIVACY.md` | Data flow, what is sent where, retention |
+| `OFFICIAL_SOURCES.md` | Official German and EU sources behind the ontology and rules |
+| `docs/BACKEND_API.md`, `docs/openapi.json` | Backend API handoff with examples; OpenAPI contract |
 | `docs/adr/` | Architecture decision records |
 | `vercel.json`, `api/index.py`, `requirements.txt`, `.vercelignore` | One-project Vercel deploy from the repo root |
 | `.github/workflows/ci.yml` | CI: lint, tests, harness benchmark, frontend build |
@@ -261,6 +263,7 @@ reasons: [docs/adr/](docs/adr/).
 | `evaluation/results/` | Benchmark and evaluation reports |
 | `scripts/make_samples.py` | Renders the sample letters with exact ground truth for samples, tests and evaluation |
 | `scripts/medical_samples.py` | The medical sample documents (discharge letter, medication plan) |
+| `scripts/export_openapi.py` | Writes `docs/openapi.json` from the running app's schema |
 
 **Frontend — `frontend/`**
 
@@ -287,6 +290,7 @@ reasons: [docs/adr/](docs/adr/).
 | `src/features/calendar/ics.ts` | Calendar (.ics) export: dates with reminders, recurring medicine reminders |
 | `src/features/medication/MedicationSchedule.tsx` | Daily medicine plan (morning/noon/evening/night, other times, stopped), reminders |
 | `src/features/accessibility/` | Read aloud (`speech.ts`, `ReadAloudButton.tsx`), text size and high contrast (`DisplaySettings.tsx`) |
+| `src/features/privacy/redact.ts` | Finds personal identifiers via OCR and blacks them out before upload |
 | `src/lib/highlights.ts` | Turns key facts and medicines into highlightable items for the viewer and OCR check |
 | `src/lib/kinds.ts` | Icons and colours per key-fact kind, date helpers |
 
@@ -1007,12 +1011,21 @@ Health data is a special category (Art. 9 GDPR). The medical pack therefore sets
   processor and region of the configured AI provider (`/api/meta → processing`),
   and warn if it is outside the EU. Recommended for production:
   `ANALYZER=trustedtokens` (EU, Germany).
-- **Data minimisation and storage limitation** (Art. 5): nothing is stored; images
-  live only for the duration of one request; logs contain no document content.
+- **Data minimisation** (Art. 5(1)(c)): before upload, the browser runs its own OCR,
+  finds personal identifiers (patient name, date of birth, postal address, insurance
+  and case numbers, and the name wherever else it appears) and **blacks them out on a
+  copy**. Only the copy is uploaded; the original never leaves the device. The results
+  screen shows "🔒 N hidden · Show what was sent". On by default for health data
+  (`privacy.redact_personal_data`), optional for letters. If OCR is unavailable, nothing
+  is sent unless the user switches the option off. Implementation:
+  `frontend/src/features/privacy/redact.ts`.
+- **Storage limitation** (Art. 5(1)(e)): nothing is stored; images live only for the
+  duration of one request; logs contain no document content.
 - **No medical advice:** the app explains documents and points to professionals; the
   no-advice guard and the disclaimer keep it on the information side.
 
-See [PRIVACY.md](PRIVACY.md) and [ADR 0008](docs/adr/0008-health-data-consent-and-accessibility.md).
+See [PRIVACY.md](PRIVACY.md), [ADR 0008](docs/adr/0008-health-data-consent-and-accessibility.md) and
+[OFFICIAL_SOURCES.md](OFFICIAL_SOURCES.md) for the official sources behind the ontology and rules.
 
 ### Next steps
 

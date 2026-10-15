@@ -38,9 +38,11 @@ MEDICAL_DOCUMENT = Domain(
         data_category="health",
         requires_consent=True,
         recommend_eu_processing=True,
+        redact_personal_data=True,
         consent_text=(
             "This document contains health data, a special category of personal data (Art. 9 DSGVO/GDPR). "
             "I explicitly agree that the photo is sent to {provider} ({region}) only to explain it to me. "
+            "Personal details such as my name and date of birth are hidden on my device first, if that option is on. "
             "Nothing is stored. I can stop at any time by closing this page."
         ),
     ),
