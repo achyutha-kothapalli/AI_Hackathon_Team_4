@@ -9,8 +9,26 @@
 .handout-settings legend { padding: 0; float: left; width: 100%; margin-bottom: 12px; }
 .segmented-row { display: flex; flex-wrap: wrap; gap: 8px; }
 .workspace-grid > :last-child { min-width: 0; background: var(--secondary); border-radius: var(--radius-lg); }
+.workspace:has(.is-compare) { max-width: 1680px; }
+.workspace-grid.is-compare { grid-template-columns: minmax(200px, 220px) minmax(0, 5fr) minmax(0, 6fr); }
+.compare-original { min-width: 0; display: grid; gap: 8px; align-content: start; position: sticky; top: 12px; }
+.compare-original .hint { margin: 0; }
+.compare-original .viewer { position: static; max-height: calc(100vh - 140px); }
+.viewer-wrap { display: grid; gap: 8px; min-width: 0; }
+.viewer-pages { display: flex; flex-wrap: wrap; gap: 6px; }
+.viewer-page-tab { display: inline-flex; align-items: center; gap: 6px; font: inherit; font-size: 13px; font-weight: 600; padding: 4px 10px; border: 1px solid var(--border-strong); border-radius: 999px; background: var(--background); color: var(--foreground); cursor: pointer; }
+.viewer-page-tab:hover { background: var(--muted); }
+.viewer-page-tab[aria-current="page"] { background: var(--foreground); color: var(--background); border-color: var(--foreground); }
+.viewer-page-tab:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+.viewer-page-count { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--muted); color: var(--foreground); font-size: 11px; }
+@media (max-width: 1279px) {
+  .workspace-grid.is-compare { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .workspace-grid.is-compare .handout-settings { grid-column: 1 / -1; position: static; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); align-items: start; }
+  .workspace-grid.is-compare .handout-settings fieldset { align-content: start; }
+}
 @media (max-width: 1023px) {
-  .workspace-grid { grid-template-columns: 1fr; }
+  .workspace-grid, .workspace-grid.is-compare { grid-template-columns: 1fr; }
+  .compare-original { position: static; }
   .handout-settings { position: static; }
 }
 .demo-strip { padding-top: 16px; }

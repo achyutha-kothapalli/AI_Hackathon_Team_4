@@ -332,6 +332,9 @@ button {
 /* ---------- document viewer ---------- */
 .viewer {
   display: grid;
+  /* Rows must take each page's full height: a capped viewer would otherwise squeeze them on top of each other. */
+  grid-auto-rows: max-content;
+  align-content: start;
   gap: 16px;
   position: sticky;
   top: 12px;
@@ -452,7 +455,8 @@ button {
 .highlight .marker {
   position: absolute;
   top: -10px;
-  left: -10px;
+  /* --step moves crowded markers sideways by whole marker widths (see viewer/markers.ts). */
+  left: calc(-10px + var(--step, 0) * 24px);
   mix-blend-mode: normal;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }

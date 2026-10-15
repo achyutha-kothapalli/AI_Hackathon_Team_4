@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { loadSample } from "../../test/samples";
 import { stringsFor } from "../../i18n/handout";
-import { DEFAULT_SETTINGS, buildHandout } from "./model";
+import { DEFAULT_SETTINGS, buildHandout, dayPlan, glance } from "./model";
 
 describe("buildHandout — discharge letter sample", () => {
   const m = buildHandout(loadSample("entlassbrief"));
@@ -75,5 +75,39 @@ describe("buildHandout — settings and edge cases", () => {
     expect(m.hospital).toBeNull();
     expect(m.medicines[0].lowConfidence).toBe(true);
     expect(m.diagnoses[0].lowConfidence).toBe(true);
+  });
+});
+
+describe("links to the original", () => {
+  it("numbers items like the highlights on the original page", () => {
+    const r = loadSample("entlassbrief");
+    const m = buildHandout(r);
+    const n = r.key_items.length;
+    expect(m.diagnoses[0].ref).toBe(r.key_items.findIndex((k) => k.id === m.diagnoses[0].id) + 1);
+    expect(m.medicines[0].ref).toBe(n + 1);
+    expect(m.stopped[0].ref).toBe(n + r.medications.findIndex((x) => x.id === m.stopped[0].id) + 1);
+    expect(m.warningSigns[0].tone).toBe("danger");
+  });
+});
+
+describe("infographic data", () => {
+  it("groups the discharge medicines by time of day", () => {
+    const plan = dayPlan(buildHandout(loadSample("entlassbrief")));
+    expect(plan.slots.map((s) => [s.slot, s.entries.map((e) => `${e.dose} ${e.title}`)])).toEqual([
+      ["morning", ["1 Ramipril", "1 Amlodipin", "1 Cefuroxim"]],
+      ["evening", ["1 Ramipril", "1 Cefuroxim"]],
+    ]);
+    expect(plan.other).toEqual([]);
+  });
+  it("lists medicines without a daily dose separately (weekly, as needed)", () => {
+    const plan = dayPlan(buildHandout(loadSample("medikationsplan")));
+    expect(plan.other.map((m) => m.boxName.split(" ")[0])).toEqual(["Methotrexat", "Folsäure", "Paracetamol"]);
+    expect(plan.slots[0].entries.find((e) => e.title.startsWith("Metformin"))?.dose).toBe("½");
+  });
+  it("counts the overview figures and respects switched-off check-ups", () => {
+    const m = buildHandout(loadSample("entlassbrief"));
+    expect(glance(m)).toEqual({ medicines: 3, newOrChanged: 2, stopped: 1, checkup: m.checkups[0].value });
+    const off = buildHandout(loadSample("entlassbrief"), { ...DEFAULT_SETTINGS, showCheckup: false });
+    expect(glance(off).checkup).toBeNull();
   });
 });

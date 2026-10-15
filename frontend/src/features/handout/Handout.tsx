@@ -1,10 +1,10 @@
 // Printable A4 handout: measures blocks off-screen, paginates them, renders the sheets twice
 // (on-screen preview and a print-only portal on <body>).
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { buildBlocks, continuationHeader, type HandoutBlock } from "./blocks";
 import type { HandoutModel } from "./model";
-import { SHEET_CONTENT_HEIGHT_PX, paginate, type FlowBlock, type Pagination } from "./paginate";
+import { SHEET_CONTENT_HEIGHT_PX, SHEET_MM, mmToPx, paginate, type FlowBlock, type Pagination } from "./paginate";
 import "./handout.css";
 
 export interface HandoutLayout {
@@ -16,9 +16,37 @@ interface Props {
   model: HandoutModel;
   onSelectItem?: (id: string) => void;
   onLayout?: (l: HandoutLayout) => void;
+  /** Row linked to the highlight selected on the original; outlined and scrolled into view. */
+  activeItemId?: string | null;
 }
 
-function Sheets({ blocks, pagination, continuation }: { blocks: HandoutBlock[]; pagination: Pagination; continuation: ReactNode }) {
+const SHEET_WIDTH_PX = mmToPx(SHEET_MM.width);
+const FRAME_PAD_PX = 32;
+
+/** Scales the A4 sheets down so they fit a narrow column (e.g. next to the original). Preview only. */
+function useFitZoom() {
+  const ref = useRef<HTMLDivElement>(null);
+  const [zoom, setZoom] = useState(1);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const ro = new ResizeObserver(([entry]) => {
+      setZoom(Math.min(1, entry.contentRect.width / (SHEET_WIDTH_PX + FRAME_PAD_PX)));
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, zoom] as const;
+}
+
+interface SheetsProps {
+  blocks: HandoutBlock[];
+  pagination: Pagination;
+  continuation: ReactNode;
+  footer: string;
+}
+
+function Sheets({ blocks, pagination, continuation, footer }: SheetsProps) {
   const total = pagination.sheets.length;
   return (
     <>
@@ -35,16 +63,19 @@ function Sheets({ blocks, pagination, continuation }: { blocks: HandoutBlock[]; 
               <div key={blocks[b].key} data-block>{blocks[b].node}</div>
             ))}
           </div>
-          <span className="sheet-number">
-            {i + 1} / {total}
-          </span>
+          <footer className="sheet-foot">
+            <span>{footer}</span>
+            <span>
+              {i + 1} / {total}
+            </span>
+          </footer>
         </article>
       ))}
     </>
   );
 }
 
-export function Handout({ model, onSelectItem, onLayout }: Props) {
+export function Handout({ model, onSelectItem, onLayout, activeItemId = null }: Props) {
   const blocks = useMemo(() => buildBlocks(model, onSelectItem), [model, onSelectItem]);
   const continuation = useMemo(() => continuationHeader(model, "meds"), [model]);
   const measureRef = useRef<HTMLDivElement>(null);
@@ -85,8 +116,25 @@ export function Handout({ model, onSelectItem, onLayout }: Props) {
     }
   }, [pagination]);
 
+  const [frameRef, zoom] = useFitZoom();
+
+  useEffect(() => {
+    const root = frameRef.current;
+    if (!root) return;
+    root.querySelectorAll(".is-linked").forEach((el) => el.classList.remove("is-linked"));
+    if (!activeItemId) return;
+    const hits = root.querySelectorAll<HTMLElement>(`[data-item="${CSS.escape(activeItemId)}"]`);
+    hits.forEach((el) => el.classList.add("is-linked"));
+    hits[0]?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [activeItemId, pagination, frameRef]);
+
+  const onPreviewClick = (e: MouseEvent) => {
+    const id = (e.target as HTMLElement).closest<HTMLElement>("[data-item]")?.dataset.item;
+    if (id) onSelectItem?.(id);
+  };
+
   const common = { "data-size": model.settings.size, dir: model.dir, lang: model.htmlLang };
-  const sheets = <Sheets blocks={blocks} pagination={pagination} continuation={continuation} />;
+  const sheets = <Sheets blocks={blocks} pagination={pagination} continuation={continuation} footer={model.t.madeWith} />;
 
   return (
     <>
@@ -98,8 +146,16 @@ export function Handout({ model, onSelectItem, onLayout }: Props) {
         ))}
         <div data-continuation="meds">{continuation}</div>
       </div>
-      <div className="handout handout-preview" {...common}>
-        {sheets}
+      <div className="handout-frame" ref={frameRef}>
+        <div
+          className="handout handout-preview"
+          data-linkable={onSelectItem ? true : undefined}
+          style={{ zoom, "--zoom": zoom } as CSSProperties}
+          onClick={onPreviewClick}
+          {...common}
+        >
+          {sheets}
+        </div>
       </div>
       {createPortal(
         <div className="handout print-root" {...common}>

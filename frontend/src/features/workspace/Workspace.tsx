@@ -1,17 +1,19 @@
-import { Lock, Printer } from "lucide-react";
+import { Columns2, Lock, Printer } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Banner } from "../../components/Banner";
 import { StatusTag } from "../../components/StatusTag";
 import { LANGUAGES } from "../../i18n/handout";
 import type { Analysis } from "../analysis/useAnalysis";
 import { needsAttention } from "../analysis/screen";
+import { highlightItems } from "../../lib/highlights";
+import { DocumentViewer } from "../viewer/DocumentViewer";
 import { Handout } from "../handout/Handout";
 import { DEFAULT_SETTINGS, buildHandout } from "../handout/model";
 import { HandoutSettings } from "./HandoutSettings";
 import { pageStatus, type PageLayout } from "./pageStatus";
 import "./workspace.css";
 
-/** Handout-only workspace: settings left, live A4 preview right, one print action. */
+/** Staff workspace: settings, the original with numbered highlights, and the live A4 preview, linked by number. */
 export function Workspace({ a }: { a: Analysis }) {
   const res = a.response!;
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
@@ -19,6 +21,12 @@ export function Workspace({ a }: { a: Analysis }) {
   const model = useMemo(() => buildHandout(res.result, settings), [res, settings]);
   const languages = a.languages.filter((l) => (LANGUAGES as readonly string[]).includes(l));
   const status = layout ? pageStatus(layout) : null;
+  const items = useMemo(() => highlightItems(res.result), [res]);
+  const hasOriginal = a.pages.length > 0;
+  const [compare, setCompare] = useState(true);
+  const showOriginal = compare && hasOriginal;
+  const [activeItemId, setActiveItemId] = useState<string | null>(null);
+  const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
 
   return (
     <main className="workspace container">
@@ -31,6 +39,17 @@ export function Workspace({ a }: { a: Analysis }) {
           </p>
         </div>
         <div className="workspace-actions">
+          {hasOriginal && (
+            <button
+              type="button"
+              className="btn btn-outline"
+              aria-pressed={compare}
+              onClick={() => setCompare((c) => !c)}
+            >
+              <Columns2 size={16} aria-hidden="true" />
+              Mit Original vergleichen
+            </button>
+          )}
           {status && <StatusTag tone={status.tone}>{status.text}</StatusTag>}
           <button type="button" className="btn btn-primary" onClick={() => window.print()}>
             <Printer size={16} aria-hidden="true" />
@@ -69,7 +88,7 @@ export function Workspace({ a }: { a: Analysis }) {
         </Banner>
       )}
 
-      <div className="workspace-grid">
+      <div className={showOriginal ? "workspace-grid is-compare" : "workspace-grid"}>
         <HandoutSettings
           settings={settings}
           onChange={setSettings}
@@ -78,7 +97,31 @@ export function Workspace({ a }: { a: Analysis }) {
           busy={a.status === "analyzing"}
           onChangeLanguage={(l) => void a.reanalyze(l)}
         />
-        <Handout model={model} onLayout={setLayout} />
+        {showOriginal && (
+          <section className="compare-original" aria-label="Originaldokument">
+            <p className="hint">
+              Original mit Markierungen. Die Nummern gehören zu den Zeilen im Patientenblatt: Klicken Sie auf eine
+              Markierung oder eine Zeile, um die passende Stelle zu sehen.
+            </p>
+            <DocumentViewer
+              pages={a.pages}
+              result={res.result}
+              items={items}
+              verifications={a.verifications}
+              mode="highlights"
+              activeItemId={activeItemId}
+              activeBlockId={activeBlockId}
+              onSelectItem={setActiveItemId}
+              onSelectBlock={setActiveBlockId}
+            />
+          </section>
+        )}
+        <Handout
+          model={model}
+          onLayout={setLayout}
+          onSelectItem={showOriginal ? setActiveItemId : undefined}
+          activeItemId={showOriginal ? activeItemId : null}
+        />
       </div>
     </main>
   );
