@@ -9,9 +9,9 @@ describe("buildBlocks", () => {
   it("orders the discharge letter into two pages", () => {
     const m = buildHandout(loadSample("entlassbrief"));
     expect(keys(m)).toEqual([
-      "header", "title1", "why", "actions", "meds-head",
+      "header", "glance", "why", "actions", "my-day", "meds-head",
       ...m.medicines.map((x) => `med-${x.id}`),
-      "stopped", "help", "checkup", "instructions", "contacts", "footer",
+      "stopped", "help", "visits", "instructions", "footer",
     ]);
     const blocks = buildBlocks(m);
     expect(blocks.find((b) => b.key === "help")!.breakBefore).toBe(true);
@@ -22,7 +22,7 @@ describe("buildBlocks", () => {
     const m = buildHandout(loadSample("medikationsplan"), { ...DEFAULT_SETTINGS, showActions: false, showCheckup: false });
     const k = keys(m);
     expect(k).not.toContain("actions");
-    expect(k).not.toContain("checkup");
+    expect(k).toContain("visits"); // contacts remain without the check-up
     expect(k).not.toContain("stopped");
     expect(k).toContain("help");
   });

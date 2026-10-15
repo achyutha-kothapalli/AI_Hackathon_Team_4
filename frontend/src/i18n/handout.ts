@@ -49,6 +49,12 @@ export interface HandoutStrings {
   sizeLarge: string;
   sizeXL: string;
   allWarningSigns: string;
+  glanceMedicines: string;
+  glanceNewOrChanged: string;
+  glanceStopped: string;
+  dayHint: string;
+  fromLetter: string;
+  page: string;
 }
 
 const STRINGS: Record<HandoutLanguage, HandoutStrings> = {
@@ -98,6 +104,12 @@ const STRINGS: Record<HandoutLanguage, HandoutStrings> = {
     sizeLarge: "Groß",
     sizeXL: "Sehr groß",
     allWarningSigns: "Alle Warnzeichen und Kontakte ansehen",
+    glanceMedicines: "Medikamente",
+    glanceNewOrChanged: "Neu oder geändert",
+    glanceStopped: "Nicht mehr nehmen",
+    dayHint: "Die Zahl zeigt, wie viel Sie zu dieser Zeit nehmen.",
+    fromLetter: "Warnzeichen aus Ihrem Brief",
+    page: "Seite",
   },
   English: {
     title1: "Your hospital stay and what to do now",
@@ -144,6 +156,12 @@ const STRINGS: Record<HandoutLanguage, HandoutStrings> = {
     sizeLarge: "Large",
     sizeXL: "Extra large",
     allWarningSigns: "See all warning signs and contacts",
+    glanceMedicines: "Medicines",
+    glanceNewOrChanged: "New or changed",
+    glanceStopped: "Stop taking",
+    dayHint: "The number shows how much to take at that time.",
+    fromLetter: "Warning signs from your letter",
+    page: "Page",
   },
 };
 

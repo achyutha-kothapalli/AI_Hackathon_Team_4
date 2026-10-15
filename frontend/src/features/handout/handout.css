@@ -1,39 +1,120 @@
-/* Printable A4 handout. Literal #000 / #fff / #999 are print colours (black-and-white safety). */
+/* Printable A4 handout. Literal #000 / #fff / #444 / #999 are print colours (black-and-white safety):
+   every coloured element also carries an icon, a border style or a word, never colour alone. */
 .handout { font-family: var(--font-sans); color: #000; line-height: 1.45; }
 .handout[data-size="normal"] { font-size: 12pt; }
 .handout[data-size="large"] { font-size: 14pt; }
-.handout h1 { font-size: 1.5em; line-height: 1.2; margin: 0 0 0.6em; }
-.handout h2 { font-size: 1.15em; margin: 0; }
+.handout h1 { font-size: 1.6em; line-height: 1.15; letter-spacing: -0.01em; margin: 0 0 0.5em; }
+.handout h2 { font-size: 1.15em; line-height: 1.3; margin: 0; }
 .handout p { margin: 0.3em 0; }
 .handout ol, .handout ul { margin: 0.3em 0; }
+.handout svg { flex: none; }
 .handout [data-block] { display: flow-root; }            /* margins stay inside, so measured heights add up */
-.handout .h-block { padding-top: 0.9em; }               /* spacing lives inside blocks so heights add up */
-.handout .h-section { display: grid; grid-template-columns: 2.2em 1fr; gap: 0 0.5em; border-top: 1px solid #000; padding-top: 0.5em; margin-bottom: 0.4em; }
-.handout .h-marker { font: 400 0.8em/1.6 var(--font-mono); }
+.handout .h-block { padding-top: 0.75em; }               /* spacing lives inside blocks so heights add up */
 .handout .mono { font-family: var(--font-mono); }
+.handout .nowrap { white-space: nowrap; }
+.handout .h-small { font-size: 0.8em; }
+.handout .h-muted, .handout .h-hint { color: #444; }
+.handout .h-hint { margin: 0 0 0.5em; }
+
+/* Header: hospital bar, title, write-in fields */
+.handout .h-brandbar { display: flex; justify-content: space-between; align-items: baseline; gap: 1em; border-bottom: 3px solid #000; padding-bottom: 0.35em; margin-bottom: 0.6em; }
 .handout .h-hospital { font-weight: 600; }
-.handout .h-small { font-size: 0.85em; }
-.handout .h-muted { color: var(--muted-foreground); }
-.handout .h-rows { list-style: none; padding: 0; }
-.handout .h-row { border-top: 1px solid #999; padding: 0.35em 0; }
-.handout .med-row { display: grid; grid-template-columns: 2fr 2fr repeat(var(--slots), 0.8fr); gap: 0.4em; border-top: 1px solid #999; padding: 0.35em 0; }
-.handout .med-head { font-weight: 600; font-size: 0.85em; border-top: 0; }
-.handout .med-notes { grid-column: 1 / -1; font-size: 0.85em; }
-.handout .tick { display: inline-block; width: 0.9em; height: 0.9em; border: 1.5px solid #000; border-radius: 2px; vertical-align: -0.1em; margin-inline-start: 0.3em; }
-.handout .emergency { border: 2px solid var(--destructive); background: var(--destructive-surface); border-radius: 6px; padding: 0.6em 0.8em; margin-bottom: 0.6em; display: grid; grid-template-columns: auto 1fr; gap: 0.2em 0.6em; align-items: start; }
-.handout .emergency .emergency-text { grid-column: 2; }
-.handout .emergency .label { grid-column: 2; font-size: 0.8em; }
+.handout .h-brandbar .h-small { color: #444; white-space: nowrap; }
+.handout .h-patient { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 0.4em 1.2em; }
+.handout .h-footer .h-patient { grid-template-columns: 2fr 1fr; margin: 0.6em 0 0.3em; }
+.handout .h-footer .h-field { display: flex; align-items: flex-end; gap: 0.5em; white-space: nowrap; }
+.handout .h-footer .write-in { flex: 1; height: 1.2em; }
+.handout .h-field { display: grid; font-size: 0.8em; color: #444; }
+.handout .h-field .write-in { height: 1.5em; min-width: 0; margin: 0; }
 .handout .write-in { display: inline-block; min-width: 9em; border-bottom: 1px solid #000; margin-inline-end: 1em; }
-.handout .write-in.short { min-width: 6em; }
+
+/* Section heads: numbered black square + title */
+.handout .h-section { display: flex; align-items: center; gap: 0.6em; border-top: 1px solid #000; padding-top: 0.5em; margin-bottom: 0.35em; }
+.handout .h-marker { display: inline-grid; place-items: center; min-width: 1.9em; height: 1.9em; background: #000; color: #fff; border-radius: 4px; font: 600 0.75em/1 var(--font-mono); print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+
+/* Overview strip */
+.handout .glance { display: grid; grid-template-columns: repeat(var(--tiles), 1fr); border: 1.5px solid #000; border-radius: 8px; }
+.handout .glance-tile { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; gap: 0 0.5em; align-items: center; padding: 0.5em 0.7em; }
+.handout .glance-tile + .glance-tile { border-inline-start: 1px solid #999; }
+.handout .glance-tile svg { grid-row: 1 / 3; }
+.handout .glance-value { font-size: 1.6em; font-weight: 700; line-height: 1.1; }
+.handout .glance-value.is-text { font-size: 1em; font-family: var(--font-mono); }
+.handout .glance-label { font-size: 0.72em; line-height: 1.2; color: #444; }
+
+.handout .h-summary { margin-top: 0; }
+.handout .h-rows { list-style: none; padding: 0; }
+.handout .h-row { border-top: 1px solid #999; padding: 0.3em 0; line-height: 1.35; }
+.handout .h-orig { font: 400 0.75em/1.4 var(--font-mono); color: #444; }
+.handout .h-steps { padding-inline-start: 1.6em; }
+.handout .h-steps li { padding: 0.05em 0; }
+.handout .h-steps li::marker { font-weight: 700; }
+
+/* Check-up and contacts side by side, value first */
+.handout .h-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); gap: 0 1.2em; }
+.handout .info-cards { list-style: none; padding: 0; display: grid; gap: 0.4em; }
+.handout .info-card { display: grid; grid-template-columns: auto 1fr; gap: 0.5em; border: 1.5px solid #000; border-radius: 8px; padding: 0.45em 0.6em; line-height: 1.3; }
+.handout .info-card > svg { margin-top: 0.1em; }
+.handout .info-value { font: 700 1.15em/1.3 var(--font-mono); margin: 0.1em 0; }
+
+/* "My day" infographic */
+.handout .day { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 0.5em; align-items: start; }
+.handout .day-card { border: 1.5px solid #000; border-radius: 8px; overflow: hidden; }
+.handout .day-card.is-other { border-style: dashed; }
+.handout .day-head { display: flex; align-items: center; gap: 0.4em; font-weight: 600; font-size: 0.9em; padding: 0.35em 0.6em; background: #000; color: #fff; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.handout .is-other .day-head { background: #fff; color: #000; border-bottom: 1.5px dashed #000; }
+.handout .day-card ul { list-style: none; padding: 0.35em 0.6em 0.45em; margin: 0; display: grid; gap: 0.3em; }
+.handout .day-card li { display: flex; align-items: flex-start; gap: 0.45em; font-size: 0.9em; line-height: 1.3; overflow-wrap: anywhere; }
+.handout .day-note { display: block; color: #444; }
+.handout .day-dose { display: inline-grid; place-items: center; flex: none; min-width: 1.6em; height: 1.6em; padding: 0 0.25em; border: 1.5px solid #000; border-radius: 999px; font: 700 0.85em/1 var(--font-mono); }
+
+/* Medicine table */
+.handout .med-row { display: grid; grid-template-columns: 2.6fr 2fr repeat(var(--slots), 0.75fr); gap: 0.2em 0.5em; border-top: 1px solid #999; padding: 0.35em 0; align-items: start; }
+.handout .med-head { font-weight: 600; font-size: 0.8em; border-top: 0; align-items: end; }
+.handout .med-slot { display: flex; align-items: center; gap: 0.25em; }
+.handout .med-dose { display: flex; align-items: center; gap: 0.3em; }
+.handout .h-box { color: #444; }
+.handout .med-for { font-size: 0.9em; line-height: 1.35; }
+.handout .med-notes { grid-column: 1 / -1; font-size: 0.8em; color: #444; }
+.handout .tick { display: inline-block; width: 1em; height: 1em; border: 1.5px solid #000; border-radius: 3px; }
+.handout .is-stopped { display: flex; gap: 0.5em; align-items: flex-start; }
+.handout .is-stopped > svg { margin-top: 0.15em; }
+
+/* Help ladder: red = 112 (general advice), amber = warning signs from the letter */
+.handout .tier { display: grid; grid-template-columns: auto 1fr; gap: 0.7em; padding: 0.5em 0.8em; border-radius: 8px; margin-bottom: 0.6em; }
+.handout .tier p { margin: 0.15em 0; }
+.handout .tier-title { display: block; font-size: 1.05em; }
+.handout .tier .label { font-size: 0.75em; }
+.handout .tier-red { border: 3px solid var(--destructive); background: var(--destructive-surface); }
+.handout .tier-red > svg { color: var(--destructive); }
+.handout .tier-amber { border: 2px dashed var(--warning); background: var(--warning-surface); }
+.handout .tier-amber > svg { color: var(--warning); }
+.handout .tier .h-row:first-child { border-top: 0; }
+
 .handout .is-unsure { outline: 1px dashed var(--warning); outline-offset: 2px; }
 .handout .unsure-tag { font: inherit; font-size: 0.75em; background: none; border: 0; padding: 0; margin-inline-start: 0.4em; cursor: pointer; }
 .handout .unsure-tag:focus-visible, .handout .unsure-tag:hover { outline: 2px solid var(--ring); outline-offset: 2px; }
+
 .handout-measure { position: absolute; left: -10000px; top: 0; visibility: hidden; width: calc(210mm - 32mm); }
-.handout-preview { display: grid; gap: 24px; justify-items: center; overflow-x: auto; padding: 24px 0; }
+.handout-frame { min-width: 0; }
+.handout-preview { display: grid; gap: 24px; justify-items: center; padding: 16px 0; }
+
+/* Staff preview: rows link to the numbered highlights on the original. Never printed (print-root has no data-linkable). */
+.handout-preview[data-linkable] [data-item] { cursor: pointer; position: relative; border-radius: 4px; }
+.handout-preview[data-linkable] [data-item]:hover { background: var(--tone-bg, rgba(107, 114, 128, 0.12)); }
+.handout-preview[data-linkable] [data-ref]::before {
+  /* Sized against the preview zoom so the number stays readable when the sheet is scaled down. */
+  content: attr(data-ref); position: absolute; inset-inline-start: calc(-26px / var(--zoom, 1)); top: 0.2em;
+  display: grid; place-items: center; min-width: 1.7em; height: 1.7em; padding: 0 0.3em; box-sizing: border-box;
+  border-radius: 999px; background: var(--tone, #4b5563); color: #fff; box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  font: 700 calc(11px / var(--zoom, 1))/1 var(--font-sans);
+}
+.handout-preview[data-linkable] .tier [data-ref]::before { inset-inline-start: auto; inset-inline-end: 0; }
+.handout-preview[data-linkable] .info-card[data-ref]::before { inset-inline-start: -0.8em; top: -0.8em; }
+.handout-preview .is-linked { outline: 3px solid var(--tone, var(--ring)); outline-offset: 3px; background: var(--tone-bg, transparent); }
 .sheet { width: 210mm; height: 297mm; background: #fff; border: 1px solid var(--border); box-shadow: var(--shadow-lg); position: relative; overflow: hidden; }
 .sheet[data-overflow] { outline: 2px solid var(--destructive); }
 .sheet-inner { padding: 14mm 16mm; }
-.sheet-number { position: absolute; right: 16mm; bottom: 7mm; font: 400 9pt var(--font-mono); }
+.sheet-foot { position: absolute; left: 16mm; right: 16mm; bottom: 7mm; display: flex; justify-content: space-between; border-top: 1px solid #999; padding-top: 1.5mm; font: 400 8pt var(--font-mono); color: #444; }
 .print-root { display: none; }
 
 @media print {
@@ -43,5 +124,5 @@
   .print-root .sheet { border: 0; box-shadow: none; outline: 0; break-after: page; }
   .preview-only { display: none !important; }
   .handout .is-unsure { outline: 0; }
-  .handout .emergency { background: none; border-color: #000; }
+  .handout .tier { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }
