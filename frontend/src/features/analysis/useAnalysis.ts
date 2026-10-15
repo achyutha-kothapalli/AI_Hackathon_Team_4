@@ -50,8 +50,9 @@ export function useAnalysis() {
 
   // Keep the target language valid for the active domain (e.g. "Einfache Sprache" for medical).
   useEffect(() => {
+    if (!domain) return; // the fallback meta (before /api/meta answers) would reset the default to English
     if (languages.length && !languages.includes(targetLanguage)) setTargetLanguage(languages[0]);
-  }, [languages, targetLanguage]);
+  }, [domain, languages, targetLanguage]);
 
   useEffect(() => {
     fetchMeta()
