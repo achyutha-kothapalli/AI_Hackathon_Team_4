@@ -1,0 +1,30 @@
+# Tool configuration and project metadata. Dependencies stay in requirements*.txt
+# because Vercel's Python runtime installs from requirements.txt.
+
+[project]
+name = "briefverstehen-backend"
+version = "0.2.0"
+description = "Translate and explain official letters, with an accuracy & safety harness."
+requires-python = ">=3.12"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+extend-exclude = [".venv"]
+
+[tool.ruff.lint]
+# pycodestyle, pyflakes, import order, pyupgrade, bugbear, simplify
+select = ["E", "F", "I", "UP", "B", "SIM"]
+ignore = [
+    "E501",   # long lines: the formatter decides; long regexes and messages are fine
+    "B905",   # zip() without strict
+    "SIM108", # ternary operator not always clearer
+    "UP042",  # keep (str, Enum): StrEnum changes str() output, i.e. behaviour
+]
+
+[tool.ruff.lint.isort]
+known-first-party = ["app", "evaluation"]

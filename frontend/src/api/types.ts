@@ -113,14 +113,35 @@ export interface AnalyzeResponse {
   page_count: number;
 }
 
+export interface SampleInfo {
+  id: string;
+  label: string;
+  image: string;
+}
+
+/** Wording for one use case, from the backend's domain pack. */
+export interface DomainUI {
+  headline: string;
+  intro: string;
+  upload_title: string;
+  upload_hint: string; // "{max_pages}" is replaced by the page limit
+  disclaimer: string;
+  progress: string[];
+}
+
+/** A domain pack (backend/app/domains/<id>/), called "profile" in the API. */
 export interface ProfileInfo {
   id: string;
   name: string;
   description: string;
   source_language: string;
+  ocr_language: string;
+  ui: DomainUI;
+  samples: SampleInfo[];
 }
 
 export interface Meta {
+  version: string;
   analyzer: string;
   default_profile: string;
   profiles: ProfileInfo[];

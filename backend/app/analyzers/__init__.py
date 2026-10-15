@@ -1,4 +1,4 @@
-from ..config import Settings
+from ..core.config import Settings
 from .base import AnalysisRequest, Analyzer, AnalyzerError, PageImage
 
 

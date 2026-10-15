@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import { SAMPLES } from "../analysis/useAnalysis";
+import type { SampleInfo } from "../../api/types";
 import type { PreparedPage } from "./preparePages";
 
 interface Props {
@@ -11,9 +11,24 @@ interface Props {
   onMove: (id: string, delta: -1 | 1) => void;
   onAnalyze: () => void;
   onTrySample: (id: string) => void;
+  samples: SampleInfo[];
+  title: string;
+  hint: string; // "{max_pages}" is replaced by maxPages
 }
 
-export function UploadPanel({ pages, maxPages, busy, onAddFiles, onRemove, onMove, onAnalyze, onTrySample }: Props) {
+export function UploadPanel({
+  pages,
+  maxPages,
+  busy,
+  onAddFiles,
+  onRemove,
+  onMove,
+  onAnalyze,
+  onTrySample,
+  samples,
+  title,
+  hint,
+}: Props) {
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -37,9 +52,9 @@ export function UploadPanel({ pages, maxPages, busy, onAddFiles, onRemove, onMov
           take(e.dataTransfer.files);
         }}
       >
-        <p className="dz-title">Photograph or upload your letter</p>
+        <p className="dz-title">{title}</p>
         <p className="dz-sub">
-          Photos (JPEG, PNG) or a PDF · up to {maxPages} pages · lay the page flat in good light
+          {hint.replace("{max_pages}", String(maxPages))}
         </p>
         <div className="dz-actions">
           <button type="button" className="btn primary" onClick={() => cameraInput.current?.click()} disabled={busy}>
@@ -107,7 +122,7 @@ export function UploadPanel({ pages, maxPages, busy, onAddFiles, onRemove, onMov
         <div className="sample-cta">
           <p>No letter at hand? Try a sample:</p>
           <div className="sample-buttons">
-            {SAMPLES.map((s) => (
+            {samples.map((s) => (
               <button key={s.id} type="button" className="btn link" onClick={() => onTrySample(s.id)} disabled={busy}>
                 {s.label}
               </button>

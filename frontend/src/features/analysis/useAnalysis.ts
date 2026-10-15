@@ -4,6 +4,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { analyzeDocument, fetchMeta } from "../../api/client";
 import type { AnalyzeResponse, Meta } from "../../api/types";
+import { FALLBACK_META, FALLBACK_SAMPLES, FALLBACK_UI } from "../../config/fallback";
 import {
   ocrLanguageFor,
   ocrPages,
@@ -18,21 +19,6 @@ import { fitToBudget, preparePages, releasePages, type PreparedPage } from "../u
 export type Status = "idle" | "preparing" | "analyzing" | "done";
 export type OcrState = "running" | "done" | "failed";
 
-/** Bundled sample letters ("Try a sample"). In demo mode the backend returns the matching answer. */
-export const SAMPLES = [
-  { id: "bussgeldbescheid", label: "Genuine fine notice", file: "/sample/bussgeldbescheid.png" },
-  { id: "scam_inkasso", label: "Fake debt collection (scam)", file: "/sample/scam_inkasso.png" },
-  { id: "injection_hundesteuer", label: "Letter with hidden AI instructions", file: "/sample/injection_hundesteuer.png" },
-] as const;
-
-const FALLBACK_META: Meta = {
-  analyzer: "unknown",
-  default_profile: "german_letter",
-  profiles: [],
-  languages: ["English"],
-  max_pages: 6,
-  max_total_upload_bytes: 4_400_000,
-};
 
 export function useAnalysis() {
   const [meta, setMeta] = useState<Meta>(FALLBACK_META);
@@ -48,6 +34,11 @@ export function useAnalysis() {
   const abortRef = useRef<AbortController | null>(null);
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
+
+  // The active domain pack configures wording, samples and OCR language.
+  const domain = meta.profiles.find((p) => p.id === meta.default_profile);
+  const ui = domain?.ui ?? FALLBACK_UI;
+  const samples = domain?.samples ?? FALLBACK_SAMPLES;
 
   useEffect(() => {
     fetchMeta()
@@ -79,16 +70,16 @@ export function useAnalysis() {
   );
 
   const trySample = useCallback(
-    async (id: string = SAMPLES[0].id) => {
-      const s = SAMPLES.find((x) => x.id === id) ?? SAMPLES[0];
+    async (id: string) => {
+      const s = samples.find((x) => x.id === id) ?? samples[0];
       releasePages(pagesRef.current);
       setPages([]);
       pagesRef.current = [];
-      const blob = await (await fetch(s.file)).blob();
+      const blob = await (await fetch(s.image)).blob();
       await addFiles([new File([blob], `${s.id}.png`, { type: "image/png" })]);
       setSample(s.id);
     },
-    [addFiles],
+    [addFiles, samples],
   );
 
   const removePage = useCallback((id: string) => {
@@ -120,11 +111,10 @@ export function useAnalysis() {
     setOcrState("running");
     abortRef.current = new AbortController();
 
-    const profile = meta.profiles.find((p) => p.id === meta.default_profile);
     // OCR runs in parallel with the AI call; it's only used to verify.
     const ocr: Promise<OcrWord[][] | null> = ocrPages(
       current,
-      ocrLanguageFor(profile?.source_language ?? "German"),
+      domain?.ocr_language ?? ocrLanguageFor(domain?.source_language ?? "German"),
     ).catch((e) => {
       console.warn("OCR verification unavailable", e);
       return null;
@@ -153,7 +143,7 @@ export function useAnalysis() {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setStatus("idle");
     }
-  }, [meta, targetLanguage, sample]);
+  }, [meta, domain, targetLanguage, sample]);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
@@ -169,6 +159,8 @@ export function useAnalysis() {
 
   return {
     meta,
+    ui,
+    samples,
     pages,
     status,
     error,

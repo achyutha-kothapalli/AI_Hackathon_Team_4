@@ -25,14 +25,12 @@ from datetime import datetime
 from pathlib import Path
 
 from app.analyzers import AnalysisRequest, PageImage, create_analyzer
-from app.config import Settings
-from app.harness import run_harness
-from app.harness import text
-from app.knowledge import load_knowledge
-from app.profiles import get_profile
+from app.core.config import Settings
+from app.domains import get_domain
+from app.harness import run_harness, text
 from app.schemas.analysis import AnalysisResult, KeyItem
 from app.schemas.harness import Severity
-from app.services.analysis_service import sniff_image_type
+from app.services.uploads import sniff_image_type
 
 CASES = Path(__file__).resolve().parent / "cases"
 RESULTS = Path(__file__).resolve().parent / "results"
@@ -51,7 +49,9 @@ def matches(expected: dict, item: KeyItem) -> bool:
         return False
     got = text.alnum(item.value + " " + item.source_quote)
     want_value, want_quote = text.alnum(expected["value"]), text.alnum(expected["quote"])
-    return (want_value and want_value in got) or (want_quote and (want_quote in got or text.alnum(item.source_quote) in want_quote))
+    return (want_value and want_value in got) or (
+        want_quote and (want_quote in got or text.alnum(item.source_quote) in want_quote)
+    )
 
 
 def invented(item: KeyItem, truth: str) -> bool:
@@ -62,7 +62,9 @@ def invented(item: KeyItem, truth: str) -> bool:
 
 async def analyze(folder: Path, analyzer_name: str, target_language: str) -> AnalysisResult:
     if analyzer_name == "reference":
-        return AnalysisResult.model_validate_json((folder / "reference_output.json").read_text(encoding="utf-8"))
+        return AnalysisResult.model_validate_json(
+            (folder / "reference_output.json").read_text(encoding="utf-8")
+        )
     pages = []
     for p in sorted(folder.glob("page_*.*")):
         data = p.read_bytes()
@@ -70,22 +72,38 @@ async def analyze(folder: Path, analyzer_name: str, target_language: str) -> Ana
     os.environ["ANALYZER"] = analyzer_name
     analyzer = create_analyzer(Settings())
     return await analyzer.analyze(
-        AnalysisRequest(pages=pages, profile=get_profile("german_letter"), target_language=target_language)
+        AnalysisRequest(pages=pages, domain=get_domain("german_letter"), target_language=target_language)
     )
 
 
 async def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--analyzer", default=None, help="claude | trustedtokens | reference (default: from settings)")
+    ap.add_argument(
+        "--analyzer", default=None, help="claude | trustedtokens | reference (default: from settings)"
+    )
     ap.add_argument("--cases", nargs="*", help="case folder names (default: all)")
     ap.add_argument("--language", default="English")
     args = ap.parse_args()
     analyzer_name = args.analyzer or Settings().analyzer
     if analyzer_name == "mock":
-        sys.exit("The mock analyzer always returns the same answer; use --analyzer reference, claude or trustedtokens.")
+        sys.exit(
+            "The mock analyzer always returns the same answer; use --analyzer reference, claude or trustedtokens."
+        )
 
-    kg = load_knowledge("german_letters")
-    rows, totals = [], {"expected": 0, "found": 0, "extracted": 0, "invented": 0, "caught": 0, "findings": 0, "findings_ok": 0, "false_alarms": 0}
+    kg = get_domain("german_letter").knowledge()
+    rows, totals = (
+        [],
+        {
+            "expected": 0,
+            "found": 0,
+            "extracted": 0,
+            "invented": 0,
+            "caught": 0,
+            "findings": 0,
+            "findings_ok": 0,
+            "false_alarms": 0,
+        },
+    )
     for folder in sorted(p for p in CASES.iterdir() if p.is_dir()):
         if args.cases and folder.name not in args.cases:
             continue
@@ -100,8 +118,10 @@ async def main() -> None:
         fired = {f.category.value for f in report.findings}
         f_ok = sum(1 for c in expected["expected_findings"] if c in fired)
         false_alarms = sum(
-            1 for f in report.findings
-            if f.severity == Severity.critical and f.category.value in ("scam", "injection")
+            1
+            for f in report.findings
+            if f.severity == Severity.critical
+            and f.category.value in ("scam", "injection")
             and f.category.value not in expected["expected_findings"]
         )
         row = {
@@ -114,9 +134,16 @@ async def main() -> None:
             "false_alarms": false_alarms,
         }
         rows.append(row)
-        for k, v in (("expected", len(expected["expected_items"])), ("found", found), ("extracted", len(result.key_items)),
-                     ("invented", len(inv)), ("caught", caught), ("findings", len(expected["expected_findings"])),
-                     ("findings_ok", f_ok), ("false_alarms", false_alarms)):
+        for k, v in (
+            ("expected", len(expected["expected_items"])),
+            ("found", found),
+            ("extracted", len(result.key_items)),
+            ("invented", len(inv)),
+            ("caught", caught),
+            ("findings", len(expected["expected_findings"])),
+            ("findings_ok", f_ok),
+            ("false_alarms", false_alarms),
+        ):
             totals[k] += v
 
     t = totals
@@ -132,7 +159,10 @@ async def main() -> None:
         "",
         "| Case | Class | Recall | Invented | Caught by harness | Expected findings | False alarms |",
         "|---|---|---|---|---|---|---|",
-    ] + [f"| {r['case']} | {r['class']} | {r['recall']} | {r['invented']} | {r['caught']} | {r['findings']} | {r['false_alarms']} |" for r in rows]
+    ] + [
+        f"| {r['case']} | {r['class']} | {r['recall']} | {r['invented']} | {r['caught']} | {r['findings']} | {r['false_alarms']} |"
+        for r in rows
+    ]
     report_md = "\n".join(md) + "\n"
     RESULTS.mkdir(exist_ok=True)
     out = RESULTS / f"eval_{analyzer_name}_{datetime.now():%Y%m%d_%H%M}.md"

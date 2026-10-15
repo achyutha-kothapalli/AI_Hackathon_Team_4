@@ -14,7 +14,7 @@ import openai
 from openai.lib._pydantic import to_strict_json_schema
 from pydantic import ValidationError
 
-from ..config import Settings
+from ..core.config import Settings
 from ..schemas.analysis import AnalysisResult
 from .base import AnalysisRequest, AnalyzerError
 from .prompts import build_system_prompt
@@ -56,7 +56,7 @@ class TrustedTokensAnalyzer:
         )
 
     def _messages(self, request: AnalysisRequest, json_mode: bool) -> list[dict]:
-        system = build_system_prompt(request.profile, request.target_language)
+        system = build_system_prompt(request.domain, request.target_language)
         if json_mode:
             system += _JSON_MODE_INSTRUCTIONS
         content: list[dict] = []
@@ -119,7 +119,9 @@ class TrustedTokensAnalyzer:
             raise AnalyzerError("Could not reach the AI service. Please retry.", 504) from None
 
         choice = response.choices[0]
-        log.info("trustedtokens model=%s finish=%s usage=%s", response.model, choice.finish_reason, response.usage)
+        log.info(
+            "trustedtokens model=%s finish=%s usage=%s", response.model, choice.finish_reason, response.usage
+        )
         if choice.finish_reason == "length":
             raise AnalyzerError("The document is too long to analyse in one go. Try fewer pages.", 413)
         if choice.finish_reason == "content_filter":

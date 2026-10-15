@@ -8,17 +8,20 @@ import openai
 import pytest
 
 from app.analyzers import AnalysisRequest, AnalyzerError, PageImage, create_analyzer
-from app.analyzers.mock import FIXTURE
 from app.analyzers.trustedtokens import TrustedTokensAnalyzer
-from app.config import Settings
-from app.profiles import get_profile
+from app.core.config import Settings
+from app.domains import get_domain
 
-SETTINGS = Settings(analyzer="trustedtokens", trustedtokens_api_key="tt-test", trustedtokens_model="some/vision-model")
+FIXTURE = get_domain("german_letter").sample_answer("bussgeldbescheid")
+
+SETTINGS = Settings(
+    analyzer="trustedtokens", trustedtokens_api_key="tt-test", trustedtokens_model="some/vision-model"
+)
 FIXTURE_TEXT = FIXTURE.read_text(encoding="utf-8")
 
 REQUEST = AnalysisRequest(
     pages=[PageImage(data=b"\xff\xd8\xff fake", media_type="image/jpeg")] * 2,
-    profile=get_profile("german_letter"),
+    domain=get_domain("german_letter"),
     target_language="English",
 )
 
@@ -32,7 +35,11 @@ def completion(content: str, finish_reason: str = "stop") -> httpx.Response:
             "created": 0,
             "model": "some/vision-model",
             "choices": [
-                {"index": 0, "finish_reason": finish_reason, "message": {"role": "assistant", "content": content}}
+                {
+                    "index": 0,
+                    "finish_reason": finish_reason,
+                    "message": {"role": "assistant", "content": content},
+                }
             ],
             "usage": {"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 20},
         },

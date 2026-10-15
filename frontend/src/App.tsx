@@ -1,15 +1,10 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { Progress } from "./components/Progress";
+import { APP_NAME } from "./config/app";
 import { useAnalysis } from "./features/analysis/useAnalysis";
 import { InsightsPanel } from "./features/insights/InsightsPanel";
 import { UploadPanel } from "./features/upload/UploadPanel";
 import { DocumentViewer, type ViewMode } from "./features/viewer/DocumentViewer";
-
-const PROGRESS = [
-  "Reading your document…",
-  "Translating every paragraph…",
-  "Looking for deadlines and amounts…",
-  "Writing a plain-language summary…",
-];
 
 export default function App() {
   const a = useAnalysis();
@@ -22,7 +17,7 @@ export default function App() {
       <header className="topbar">
         <div className="brand">
           <img src="/favicon.svg" alt="" width={28} height={28} />
-          <span>BriefVerstehen</span>
+          <span>{APP_NAME}</span>
         </div>
         <label className="lang">
           <span>Translate to</span>
@@ -53,11 +48,8 @@ export default function App() {
       {!a.response ? (
         <main className="start">
           <div className="intro">
-            <h1>Understand official letters in your language</h1>
-            <p>
-              Take a photo of a German letter. You get a translation, the deadlines and amounts that matter, and
-              exactly where each one is written on the page.
-            </p>
+            <h1>{a.ui.headline}</h1>
+            <p>{a.ui.intro}</p>
           </div>
           <UploadPanel
             pages={a.pages}
@@ -68,8 +60,11 @@ export default function App() {
             onMove={a.movePage}
             onAnalyze={a.analyze}
             onTrySample={a.trySample}
+            samples={a.samples}
+            title={a.ui.upload_title}
+            hint={a.ui.upload_hint}
           />
-          {a.status === "analyzing" && <Progress />}
+          {a.status === "analyzing" && <Progress steps={a.ui.progress} />}
         </main>
       ) : (
         <main className="results">
@@ -114,26 +109,9 @@ export default function App() {
               onSelectBlock={setActiveBlockId}
             />
           </div>
-          <p className="disclaimer">
-            AI translations can contain mistakes. For legal decisions, check with the sender or an advice centre
-            (e.g. Verbraucherzentrale, Migrationsberatung).
-          </p>
+          <p className="disclaimer">{a.ui.disclaimer}</p>
         </main>
       )}
-    </div>
-  );
-}
-
-function Progress() {
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setI((n) => Math.min(n + 1, PROGRESS.length - 1)), 4000);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <div className="progress" role="status">
-      <span className="spinner" aria-hidden />
-      {PROGRESS[i]}
     </div>
   );
 }
