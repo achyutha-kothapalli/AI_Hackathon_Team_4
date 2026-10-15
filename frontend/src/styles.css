@@ -452,7 +452,8 @@ button {
 .highlight .marker {
   position: absolute;
   top: -10px;
-  left: -10px;
+  /* --step moves crowded markers sideways by whole marker widths (see viewer/markers.ts). */
+  left: calc(-10px + var(--step, 0) * 24px);
   mix-blend-mode: normal;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
