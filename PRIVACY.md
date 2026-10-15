@@ -1,7 +1,20 @@
 # Privacy and data flow
 
-Official letters contain personal data. BriefVerstehen is designed to process
-as little as possible, for as short a time as possible.
+Medical documents contain **health data**, a special category of personal data
+(Art. 9 DSGVO/GDPR); official letters contain personal data. BriefVerstehen is
+designed to process as little as possible, for as short a time as possible, and
+only with the user's explicit consent for health data.
+
+## Consent for health data
+
+- Before a medical document is analysed, the user must tick an explicit consent
+  (Art. 9(2)(a) GDPR). The text names who processes the data and where.
+- The **backend enforces it**: without `consent=true` it refuses medical documents
+  (HTTP 428), so no client can skip it.
+- Consent is per session and use case; closing the page ends it. Nothing is stored,
+  so there is nothing to delete (Art. 17).
+- If the configured AI provider processes data outside the EU, the UI says so and
+  recommends the EU provider.
 
 ## What happens to a letter
 
@@ -17,6 +30,8 @@ as little as possible, for as short a time as possible.
 - **No database, no file storage, no accounts, no tracking.**
 - **Logs** contain only request ids, paths, status codes and durations. Never images or letter text.
 - **Calendar export** is generated in the browser; nothing is sent anywhere.
+- **Read aloud** uses the browser's built-in speech synthesis on the device; no text is sent to a speech service.
+- **Display settings** (text size, contrast) are stored only in the browser.
 
 ## Choosing where data is processed
 

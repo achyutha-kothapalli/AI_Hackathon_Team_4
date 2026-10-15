@@ -14,6 +14,10 @@ interface Props {
   samples: SampleInfo[];
   title: string;
   hint: string; // "{max_pages}" is replaced by maxPages
+  processing: { provider: string; region: string; eu: boolean };
+  privacy?: { requires_consent: boolean; consent_text: string | null; recommend_eu_processing: boolean };
+  consent: boolean;
+  onConsent: (v: boolean) => void;
 }
 
 export function UploadPanel({
@@ -28,7 +32,15 @@ export function UploadPanel({
   samples,
   title,
   hint,
+  processing,
+  privacy,
+  consent,
+  onConsent,
 }: Props) {
+  const needsConsent = privacy?.requires_consent ?? false;
+  const consentText = (privacy?.consent_text ?? "")
+    .replace("{provider}", processing.provider)
+    .replace("{region}", processing.region);
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -114,13 +126,32 @@ export function UploadPanel({
               </li>
             ))}
           </ol>
-          <button type="button" className="btn primary wide" onClick={onAnalyze} disabled={busy}>
+          {needsConsent && (
+            <div className="consent">
+              <label>
+                <input type="checkbox" checked={consent} onChange={(e) => onConsent(e.target.checked)} />
+                <span>{consentText}</span>
+              </label>
+              {privacy?.recommend_eu_processing && !processing.eu && (
+                <p className="consent-warning" role="note">
+                  ⚠ The current AI provider processes data outside the EU ({processing.region}). For health data an
+                  EU provider is recommended.
+                </p>
+              )}
+            </div>
+          )}
+          <button
+            type="button"
+            className="btn primary wide"
+            onClick={onAnalyze}
+            disabled={busy || (needsConsent && !consent)}
+          >
             {busy ? "Working…" : `Translate & explain ${pages.length} page${pages.length === 1 ? "" : "s"}`}
           </button>
         </>
       ) : (
         <div className="sample-cta">
-          <p>No letter at hand? Try a sample:</p>
+          <p>No document at hand? Try a sample:</p>
           <div className="sample-buttons">
             {samples.map((s) => (
               <button key={s.id} type="button" className="btn link" onClick={() => onTrySample(s.id)} disabled={busy}>
@@ -131,7 +162,8 @@ export function UploadPanel({
         </div>
       )}
       <p className="privacy">
-        Your images are sent to the AI service only to analyse them and are not stored by this app.
+        Processed by: {processing.provider} · {processing.region}. Only to analyse your document — nothing is
+        stored by this app.
       </p>
     </section>
   );

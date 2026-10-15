@@ -3,11 +3,14 @@ import type { AnalysisResult, HarnessReport, ItemCheck, KeyItem } from "../../ap
 import { byImportance, daysUntil, formatDate, KIND_META } from "../../lib/kinds";
 import { datedItems, downloadIcs } from "../calendar/ics";
 import type { Coverage, Verification } from "../ocr/verifyHighlights";
+import { ReadAloudButton } from "../accessibility/ReadAloudButton";
+import { MedicationSchedule } from "../medication/MedicationSchedule";
 import { ChecksPanel } from "../safety/ChecksPanel";
 
 interface Props {
   result: AnalysisResult;
   checks: HarnessReport;
+  targetLanguage: string;
   coverage: Coverage | null;
   verifications: Record<string, Verification> | null;
   ocrState: "running" | "done" | "failed";
@@ -33,11 +36,27 @@ export function InsightsPanel(props: Props) {
         {result.sender && <p className="sender">From {result.sender}</p>}
         <p className="summary-text" dir="auto">{result.summary}</p>
         {result.confidence_note && <p className="note">⚠ {result.confidence_note}</p>}
+        <ReadAloudButton
+          text={() => [result.summary, ...result.action_steps].join(" ")}
+          targetLanguage={props.targetLanguage}
+          label="Read summary and steps aloud"
+        />
       </section>
+
+      <MedicationSchedule
+        medications={result.medications}
+        checks={props.checks.item_checks}
+        targetLanguage={props.targetLanguage}
+        activeId={props.activeItemId}
+        onSelect={props.onSelectItem}
+      />
 
       {result.action_steps.length > 0 && (
         <section className="card">
-          <h2>What to do</h2>
+          <div className="card-head">
+            <h2>What to do</h2>
+            <ReadAloudButton text={() => result.action_steps.join(" ")} targetLanguage={props.targetLanguage} />
+          </div>
           <ol className="steps">
             {result.action_steps.map((s, i) => (
               <li key={i} dir="auto">{s}</li>

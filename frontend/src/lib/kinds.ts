@@ -9,6 +9,10 @@ export const KIND_META: Record<KeyItemKind, { label: string; icon: string; tone:
   document_required: { label: "Documents", icon: "📎", tone: "violet" },
   reference: { label: "Reference", icon: "#", tone: "info" },
   contact: { label: "Contact", icon: "☎", tone: "teal" },
+  medication: { label: "Medicine", icon: "💊", tone: "info" },
+  diagnosis: { label: "Diagnosis", icon: "🩺", tone: "violet" },
+  warning_sign: { label: "Warning sign", icon: "🚨", tone: "danger" },
+  instruction: { label: "What to do", icon: "✅", tone: "teal" },
   other: { label: "Info", icon: "i", tone: "neutral" },
 };
 

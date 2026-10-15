@@ -2,18 +2,26 @@
 
 [![CI](https://github.com/achyutha-kothapalli/AI_Hackathon_Team_4/actions/workflows/ci.yml/badge.svg)](https://github.com/achyutha-kothapalli/AI_Hackathon_Team_4/actions/workflows/ci.yml)
 ![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
-![Harness benchmark 71/71](https://img.shields.io/badge/harness%20benchmark-71%2F71%20faults%20caught-brightgreen)
+![Harness benchmark 154/154](https://img.shields.io/badge/harness%20benchmark-154%2F154%20faults%20caught-brightgreen)
 
-Photograph a German letter → get a translation, a plain-language summary, the
-deadlines, amounts and reference numbers that matter, **and see exactly where
-each one is printed on your photo**. Deadlines export to your calendar.
+**Hackathon problem:** make medical information (diagnoses, discharge notes,
+medication plans) understandable and actionable for people with low health
+literacy, visual impairment or poor eyesight, in line with the DSGVO.
+
+Photograph a discharge letter or medication plan → get a **plain-language
+explanation** (also in *Einfache Sprache*), a **daily medicine plan**, warning
+signs and next steps, **read aloud** if you like, with every fact and dose
+**verified against the document** and highlighted on your photo. Health data is
+only processed with **explicit consent**. The original use case (German official
+letters) remains available as a second domain pack.
 
 - **backend/** — FastAPI (Python). Calls Claude or TrustedTokens (EU-hosted models) and returns structured JSON.
 - **frontend/** — React + Vite (TypeScript). Upload, overlay viewer, insights, safety checks.
 - **Accuracy & safety harness** — every AI answer is checked in code against a
   networkx knowledge graph (JSON ontology + rules): nothing invented, nothing
-  lost, scam and prompt-injection safeguards. Fault-injection benchmark: 71/71
-  corruptions caught, 0 false alarms. See [HOW_IT_WORKS.md section 10](HOW_IT_WORKS.md#10-accuracy--safety-harness).
+  lost, no medical advice beyond the document, readability, scam and
+  prompt-injection safeguards. Fault-injection benchmark: 154/154 corruptions
+  caught, 0 false alarms. See [HOW_IT_WORKS.md section 10](HOW_IT_WORKS.md#10-accuracy--safety-harness).
 - **Domain packs** — everything specific to a use case (prompt, wording, samples,
   ontology, rules) lives in one folder, so a new problem is a new folder, not a rewrite.
 
@@ -33,17 +41,17 @@ Hackathon_WHU/
 │   │   ├── api/             HTTP routes, typed responses
 │   │   ├── services/        orchestration: validate → analyze → sanitise → harness
 │   │   ├── analyzers/       AI providers: Claude, TrustedTokens, mock (demo mode)
-│   │   ├── domains/         ★ domain packs, e.g. german_letter/ (prompt, ui, samples, ontology.json, rules.json)
+│   │   ├── domains/         ★ domain packs: medical_document/ (default), german_letter/
 │   │   ├── knowledge/       knowledge-graph engine (networkx)
 │   │   ├── harness/         accuracy & safety check pipeline + checks/
 │   │   └── schemas/         contracts: AI output, harness report, API responses
-│   ├── tests/               42 tests, no API keys needed
+│   ├── tests/               51 tests, no API keys needed
 │   ├── evaluation/          fault-injection benchmark, real-model evaluation, cases/
 │   ├── scripts/             make_samples.py (sample letters with exact ground truth)
 │   ├── api/index.py         Vercel entry point (backend-only deploy)
 │   └── pyproject.toml, requirements*.txt, vercel.json, .env.example
 ├── frontend/                React 19 · TypeScript · Vite
-│   ├── src/                 api/, config/, components/, features/{analysis,upload,ocr,viewer,insights,safety,calendar}, lib/
+│   ├── src/                 api/, config/, components/, features/{analysis,upload,ocr,viewer,insights,medication,safety,accessibility,calendar}, lib/
 │   └── public/sample/       sample letters for "Try a sample"
 ├── docs/adr/                architecture decision records
 ├── .github/workflows/ci.yml lint, tests, benchmark, frontend build

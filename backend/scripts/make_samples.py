@@ -1,6 +1,8 @@
 """Render sample letters with exact ground truth.
 
 Because we draw the letters ourselves, every bounding box and quote is exact.
+German-letter samples are defined here, medical samples in medical_samples.py.
+
 Outputs (run from backend/:  python scripts/make_samples.py):
 
   tests/fixtures/sample_letter.png                        backend tests
@@ -73,6 +75,9 @@ class Letter:
     draw: ImageDraw.ImageDraw = field(init=False)
     blocks: list[dict] = field(default_factory=list)
     items: list[dict] = field(default_factory=list)
+    meds: list[dict] = field(default_factory=list)
+    target_language: str = "English"
+    domain: str = "german_letter"  # which domain pack the sample belongs to
     _words: list = field(default_factory=list)  # (block_id, start, end, box)
     _texts: dict = field(default_factory=dict)
     suspicious: str | None = None
@@ -114,6 +119,44 @@ class Letter:
         )
         return cy + line_h
 
+    def row(self, bid, cells, y, translation, f=None, fill=(25, 25, 30)):
+        """Draw one table row. `cells` is a list of (text, x, width); the row is one text block.
+        Cell texts are joined with two spaces in the block's original text. Returns the y below it."""
+        f = f or font(size=21)
+        space = self.draw.textlength(" ", font=f)
+        asc, desc = f.getmetrics()
+        line_h = asc + desc
+        texts = [c[0] for c in cells if c[0]]
+        text = "  ".join(texts)
+        pos, boxes, bottom = 0, [], y + line_h
+        for cell_text, x, width in cells:
+            if not cell_text:
+                continue
+            cx, cy = x, y
+            for word in cell_text.split(" "):
+                wl = self.draw.textlength(word, font=f)
+                if cx > x and cx + wl > x + width:
+                    cx, cy = x, cy + line_h + 6
+                self.draw.text((cx, cy), word, font=f, fill=fill)
+                box = (int(cx), int(cy), int(cx + wl), int(cy + line_h))
+                start = text.index(word, pos)
+                self._words.append((bid, start, start + len(word), box))
+                boxes.append(box)
+                pos = start + len(word)
+                cx += wl + space
+            bottom = max(bottom, cy + line_h)
+        self._texts[bid] = text
+        self.blocks.append(
+            {
+                "id": bid,
+                "page": 0,
+                "bbox": norm_box(union(boxes)),
+                "original": text,
+                "translation": translation,
+            }
+        )
+        return bottom
+
     def item(
         self, kind, importance, label, value, explanation, bid, quote, date=None, amount=None, currency=None
     ):
@@ -140,6 +183,53 @@ class Letter:
             }
         )
 
+    def _quote_box(self, bid, quote):
+        txt = self._texts[bid]
+        start = txt.index(quote)
+        end = start + len(quote)
+        hits = [b for p, s, e, b in self._words if p == bid and s < end and e > start]
+        x0, y0, x1, y1 = union(hits)
+        return norm_box((x0 - 4, y0 - 4, x1 + 4, y1 + 4))
+
+    def med(
+        self,
+        bid,
+        quote,
+        name,
+        *,
+        strength=None,
+        form=None,
+        ingredient=None,
+        doses=(None, None, None, None),
+        schedule_text=None,
+        status="continued",
+        purpose=None,
+        instructions=None,
+    ):
+        """A medication row; `quote` must be the exact printed text (it is located on the page)."""
+        morning, noon, evening, night = doses
+        self.meds.append(
+            {
+                "id": f"m{len(self.meds)}",
+                "name": name,
+                "active_ingredient": ingredient,
+                "strength": strength,
+                "form": form,
+                "morning": morning,
+                "noon": noon,
+                "evening": evening,
+                "night": night,
+                "schedule_text": schedule_text,
+                "status": status,
+                "purpose": purpose,
+                "instructions": instructions,
+                "page": 0,
+                "bbox": self._quote_box(bid, quote),
+                "source_quote": quote,
+                "confidence": "high",
+            }
+        )
+
     def result(self) -> dict:
         return {
             "document_type": self.document_type,
@@ -147,10 +237,11 @@ class Letter:
             "image_quality": "good",
             "sender": self.sender,
             "source_language": "German",
-            "target_language": "English",
+            "target_language": self.target_language,
             "summary": self.summary,
             "action_steps": self.action_steps,
             "key_items": self.items,
+            "medications": self.meds,
             "blocks": self.blocks,
             "confidence_note": None,
             "suspicious_instructions": self.suspicious,
@@ -159,11 +250,23 @@ class Letter:
     def expected(self) -> dict:
         return {
             "id": self.id,
+            "domain": self.domain,
             "description": self.description,
             "expected_class": self.document_class,
             "transcript": "\n".join(b["original"] for b in self.blocks),
             "expected_items": [
                 {"kind": i["kind"], "value": i["value"], "quote": i["source_quote"]} for i in self.items
+            ],
+            "expected_medications": [
+                {
+                    "name": md["name"],
+                    "strength": md["strength"],
+                    "doses": [md["morning"], md["noon"], md["evening"], md["night"]],
+                    "schedule_text": md["schedule_text"],
+                    "status": md["status"],
+                    "quote": md["source_quote"],
+                }
+                for md in self.meds
             ],
             "expected_findings": self.expected_findings,
         }
@@ -606,21 +709,22 @@ def save(L: Letter) -> None:
 
 
 if __name__ == "__main__":
-    letters = [bussgeld(), scam_inkasso(), injection_hundesteuer()]
+    from medical_samples import entlassbrief, medikationsplan  # noqa: E402 (same folder)
+
+    letters = [bussgeld(), scam_inkasso(), injection_hundesteuer(), entlassbrief(), medikationsplan()]
     for letter in letters:
         save(letter)
 
     fine = letters[0]
     (BACKEND / "tests" / "fixtures").mkdir(exist_ok=True)
     fine.img.save(BACKEND / "tests" / "fixtures" / "sample_letter.png", optimize=True)
-    samples = BACKEND / "app" / "domains" / "german_letter" / "samples"
-    samples.mkdir(exist_ok=True)
-    for letter in letters:  # mock analyzer answers, picked by the UI's sample buttons
-        write_json(samples / f"{letter.id}.json", letter.result())
     public = FRONTEND / "public" / "sample"
-    if public.parent.exists():
-        public.mkdir(exist_ok=True)
-        fine.img.save(public / "bussgeldbescheid.png", optimize=True)
-        letters[1].img.save(public / "scam_inkasso.png", optimize=True)
-        letters[2].img.save(public / "injection_hundesteuer.png", optimize=True)
-    print("wrote mock fixture and frontend samples")
+    for letter in letters:
+        # mock analyzer answers, picked by the UI's sample buttons
+        samples = BACKEND / "app" / "domains" / letter.domain / "samples"
+        samples.mkdir(exist_ok=True)
+        write_json(samples / f"{letter.id}.json", letter.result())
+        if public.parent.exists():
+            public.mkdir(exist_ok=True)
+            letter.img.save(public / f"{letter.id}.png", optimize=True)
+    print("wrote mock fixtures and frontend samples")

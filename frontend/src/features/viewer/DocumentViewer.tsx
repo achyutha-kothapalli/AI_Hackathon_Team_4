@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 import type { AnalysisResult, BBox } from "../../api/types";
+import type { Highlightable } from "../../lib/highlights";
 import { KIND_META } from "../../lib/kinds";
 import type { Verification } from "../ocr/verifyHighlights";
 import type { PreparedPage } from "../upload/preparePages";
@@ -10,6 +11,7 @@ export type ViewMode = "highlights" | "translation" | "original";
 interface Props {
   pages: PreparedPage[];
   result: AnalysisResult;
+  items: Highlightable[]; // key facts + medicines
   verifications: Record<string, Verification> | null;
   mode: ViewMode;
   activeItemId: string | null;
@@ -28,6 +30,7 @@ const pct = (b: BBox) => ({
 export function DocumentViewer({
   pages,
   result,
+  items,
   verifications,
   mode,
   activeItemId,
@@ -48,7 +51,7 @@ export function DocumentViewer({
     <div className="viewer">
       {pages.map((page, pageIndex) => {
         const blocks = result.blocks.filter((b) => b.page === pageIndex);
-        const items = result.key_items.filter((k) => k.page === pageIndex);
+        const pageItems = items.filter((k) => k.page === pageIndex);
         return (
           <figure
             key={page.id}
@@ -72,11 +75,11 @@ export function DocumentViewer({
               ))}
 
             {mode !== "original" &&
-              items.map((item) => {
+              pageItems.map((item) => {
                 const v = verifications?.[item.id];
                 const rects = v?.rects ?? [item.bbox];
                 const tone = KIND_META[item.kind].tone;
-                const number = result.key_items.indexOf(item) + 1;
+                const number = items.indexOf(item) + 1;
                 return rects.map((r, i) => (
                   <button
                     key={`${item.id}-${i}`}

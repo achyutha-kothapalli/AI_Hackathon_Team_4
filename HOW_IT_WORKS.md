@@ -237,6 +237,9 @@ reasons: [docs/adr/](docs/adr/).
 | `app/domains/german_letter/ontology.json` | Document classes (is-a hierarchy), legal bases, item kinds, help resources |
 | `app/domains/german_letter/rules.json` | 24 accuracy & safety rules |
 | `app/domains/german_letter/samples/*.json` | Exact answers for the three sample letters |
+| `app/domains/medical_document/__init__.py` | The medical domain: plain-language prompt, UI wording, languages incl. Einfache Sprache, consent text, samples |
+| `app/domains/medical_document/ontology.json` | Medical document classes, legal bases (§ 630e/g BGB, § 31a/39 SGB V, Art. 5/9 GDPR), help resources (112, 116117, …), readability target |
+| `app/domains/medical_document/rules.json` | Medication coverage, no-advice guards, medication safety notes, escalation |
 | `app/knowledge/models.py` | Pydantic models that validate `ontology.json` and `rules.json` |
 | `app/knowledge/graph.py` | `KnowledgeGraph` on networkx: validation, lineage, rule inheritance, classification, JSON export |
 | `app/harness/base.py` | The check contract: `CheckContext`, `CheckOutput`, `Check` |
@@ -245,6 +248,7 @@ reasons: [docs/adr/](docs/adr/).
 | `app/harness/checks/knowledge_rules.py` | Executes the domain's rules: nothing lost, legal periods, scam signs, escalation |
 | `app/harness/checks/injection.py` | Prompt-injection detection in the letter text |
 | `app/harness/checks/quality.py` | Poor photos, low-confidence facts, model notes |
+| `app/harness/checks/readability.py` | Readability of the explanation (Flesch / Amstad) against the domain's target |
 | `app/harness/text.py` | Number words, German dates and amounts, IBAN parsing and checksum, evidence snippets |
 | `app/schemas/analysis.py` | Contract of the AI's answer (sent to the model as JSON Schema) |
 | `app/schemas/harness.py` | Contract of the harness report |
@@ -256,6 +260,7 @@ reasons: [docs/adr/](docs/adr/).
 | `evaluation/cases/<id>/` | Evaluation letters: `page_0.png`, `expected.json`, `reference_output.json` |
 | `evaluation/results/` | Benchmark and evaluation reports |
 | `scripts/make_samples.py` | Renders the sample letters with exact ground truth for samples, tests and evaluation |
+| `scripts/medical_samples.py` | The medical sample documents (discharge letter, medication plan) |
 
 **Frontend — `frontend/`**
 
@@ -279,7 +284,10 @@ reasons: [docs/adr/](docs/adr/).
 | `src/features/viewer/FitText.tsx` | Fits translated text into its paragraph box |
 | `src/features/insights/InsightsPanel.tsx` | Summary, steps, key-fact cards, full translation |
 | `src/features/safety/ChecksPanel.tsx` | Safety checks: scam alarm, scores, findings, help resources |
-| `src/features/calendar/ics.ts` | Calendar (.ics) export with reminders |
+| `src/features/calendar/ics.ts` | Calendar (.ics) export: dates with reminders, recurring medicine reminders |
+| `src/features/medication/MedicationSchedule.tsx` | Daily medicine plan (morning/noon/evening/night, other times, stopped), reminders |
+| `src/features/accessibility/` | Read aloud (`speech.ts`, `ReadAloudButton.tsx`), text size and high contrast (`DisplaySettings.tsx`) |
+| `src/lib/highlights.ts` | Turns key facts and medicines into highlightable items for the viewer and OCR check |
 | `src/lib/kinds.ts` | Icons and colours per key-fact kind, date helpers |
 
 ---
@@ -564,7 +572,7 @@ mapping (refusal, truncation, rate limit) without network access or a key.
 | Gate | Command (in `backend/`) | Runs in CI |
 |---|---|---|
 | Lint and formatting | `ruff check . && ruff format --check .` | ✓ |
-| Tests (42) | `pytest` | ✓ |
+| Tests (51) | `pytest` | ✓ |
 | Harness benchmark (must stay 100 %, 0 false alarms) | `python -m evaluation.benchmark` | ✓ |
 | Frontend type-check and build | `npm run build` (in `frontend/`) | ✓ |
 
@@ -906,7 +914,9 @@ Current result (also enforced by `tests/test_harness.py`):
 | prompt injection inserted | 3/3 |
 | scam payment method inserted | 3/3 |
 | expected safety findings on the sample letters | 5/5 |
-| **Total** | **71/71 (100%), 0 false alarms on correct answers** |
+| **Total (German letters only)** | **71/71 (100%), 0 false alarms on correct answers** |
+
+With the medical domain added the benchmark covers 154 faults; see [section 11](#11-medical-documents-for-low-health-literacy-hackathon-problem).
 
 **2. End-to-end evaluation with a real model (uses API credits).** It sends the
 sample letters to Claude or TrustedTokens and scores recall ("nothing lost"),
@@ -939,3 +949,77 @@ truth is exact.
   make an invented fact very unlikely to go unnoticed.
 - Pattern lists (scam, injection) cannot be exhaustive, and the harness
   messages are in English regardless of the target language.
+
+---
+
+## 11. Medical documents for low health literacy (hackathon problem)
+
+> *How can I make medical information (diagnoses, discharge notes, medication
+> plans) understandable and actionable with low health literacy?*
+
+The medical solution is a second **domain pack**
+(`backend/app/domains/medical_document/`) on the same engine. It is the default;
+the German-letters pack remains selectable via the **Document** switcher.
+
+### Personas and what serves them
+
+| Persona | Need | What the app does |
+|---|---|---|
+| Low health literacy | Simple words, clear actions | Plain-language explanations (≤ 12 words per sentence, every term explained with the German term in brackets), **"Einfache Sprache"** as an output language, a **daily medicine plan** (morning / noon / evening / night), "what to do" steps, warning signs, follow-up dates, and **calendar reminders** for every medicine |
+| Visually impaired | Not having to read | **Read aloud** for the summary, steps and medicine plan (browser speech synthesis, on-device), a screen-reader announcement of the result, labelled controls; the prompt writes text that works read aloud (no tables, symbols or unexplained abbreviations) |
+| Elderly with poor eyesight | Bigger, clearer display | **Text size** 100 / 120 / 140 % and a **high-contrast** mode (remembered per browser), large touch targets, the photo shown next to the explanation |
+
+### What the AI extracts (contract additions)
+
+- `medications[]`: each medicine **exactly as printed**: name, strength, form,
+  dose columns `morning / noon / evening / night` (bundeseinheitlicher
+  Medikationsplan), `schedule_text` for non-daily rules (e.g. *1x wöchentlich
+  montags*, *bis einschließlich 12.10.2026*), `status` (new / changed /
+  continued / stopped), plus `purpose` and `instructions` in plain words.
+- New key-fact kinds: `diagnosis` (with ICD-10 code), `warning_sign`,
+  `instruction`, besides `appointment`.
+
+### Harness additions (accuracy and safety)
+
+| Check | Type | What it guarantees |
+|---|---|---|
+| **Medication grounding** | `checks/grounding.py` | Every medicine's name and strength are in its quote; doses are compared **slot by slot** with the printed schedule (`1-0-1-0`), so a swapped morning/evening dose is caught |
+| **Dose, schedule and change coverage** | `rules.json` (`signal_coverage`) | Every *name + dose* (e.g. "Ramipril 5 mg"), every schedule, every *abgesetzt / pausiert / neu angesetzt*, follow-up date, warning sign, instruction, diagnosis code and phone number printed in the document is extracted ("nothing lost"). Coverage is checked on whole tokens, so "N10" is not "found" inside "Metformin 1000" |
+| **No-advice guard** | new rule type `output_pattern` | Checks the AI's **own wording**: telling the reader to stop, skip or change a medicine is flagged as critical unless the document says so. It is medication-aware: "stop Metformin" is fine if Metformin is `stopped` in the document, "stop Ramipril" is not. False reassurance ("nothing to worry about") is flagged |
+| **Readability** | `checks/readability.py` | Flesch Reading Ease (English) / Amstad (German, incl. Einfache Sprache) of the explanation against a target of 60, shown as "reading ease" |
+| **Medication safety notes** | `rules.json` (`text_pattern`, category `safety`) | Methotrexate is usually taken **once a week** (a classic, dangerous dosing error); blood thinners; insulin |
+| **Escalation** | `rules.json` | Warning signs → **112 / 116117**; every doctor's letter → your family doctor, *Was hab' ich?*, gesund.bund.de and your rights (§ 630e, § 630g BGB); medication plans → pharmacy |
+
+Benchmark (all domains, `python -m evaluation.benchmark`): **154/154 injected faults
+detected, 0 false alarms**, including wrong strength, wrong dose, wrong or invented
+medicine, dropped medicine, made-up stop advice, false reassurance and jargon-heavy
+explanations.
+
+### DSGVO / GDPR
+
+Health data is a special category (Art. 9 GDPR). The medical pack therefore sets
+`privacy.requires_consent`:
+
+- **Explicit consent** (Art. 9(2)(a)): the UI requires a consent checkbox, and the
+  **backend refuses** health documents without `consent=true` (HTTP 428), so the
+  rule cannot be bypassed by another client.
+- **Transparency** (Art. 13): the consent text and the upload panel name the
+  processor and region of the configured AI provider (`/api/meta → processing`),
+  and warn if it is outside the EU. Recommended for production:
+  `ANALYZER=trustedtokens` (EU, Germany).
+- **Data minimisation and storage limitation** (Art. 5): nothing is stored; images
+  live only for the duration of one request; logs contain no document content.
+- **No medical advice:** the app explains documents and points to professionals; the
+  no-advice guard and the disclaimer keep it on the information side.
+
+See [PRIVACY.md](PRIVACY.md) and [ADR 0008](docs/adr/0008-health-data-consent-and-accessibility.md).
+
+### Next steps
+
+- **WhatsApp:** send a photo to a WhatsApp number and receive the explanation, the
+  medicine plan and a voice message back. It needs the WhatsApp Business API
+  (business verification) and a GDPR review of Meta as an additional processor;
+  the backend API is already suitable as the engine.
+- Evaluate with real (anonymised) discharge letters and medication plans via
+  `evaluation/run_eval.py`.
+- Medication interactions and reading the BMP's QR code are possible extensions.

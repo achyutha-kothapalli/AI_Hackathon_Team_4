@@ -1,0 +1,214 @@
+{
+  "$comment": "Rules for German medical documents. 'applies_to' is an ontology class id; a rule applies to that class and all its descendants (medical_document = every document). Patterns are Python regular expressions matched case-insensitively. output_pattern rules check the AI's own explanation, not the document.",
+  "version": "1.0",
+  "rules": [
+    {
+      "id": "C-DISCHARGE-MEDICATION",
+      "type": "requires_item",
+      "applies_to": "discharge_letter",
+      "item_kind": "medication",
+      "match_any": [],
+      "severity": "warning",
+      "legal_basis": "sgbv_39",
+      "message": "Discharge letters normally list the medicines to take at home, but none were extracted. Check the 'Medikation' section of the letter."
+    },
+    {
+      "id": "C-CLINICAL-DIAGNOSIS",
+      "type": "requires_item",
+      "applies_to": "clinical_letter",
+      "item_kind": "diagnosis",
+      "match_any": [],
+      "severity": "warning",
+      "message": "Doctor's letters normally state the diagnoses, but none were extracted. Check the 'Diagnose' section of the letter."
+    },
+    {
+      "id": "C-DISCHARGE-FOLLOWUP",
+      "type": "requires_item",
+      "applies_to": "discharge_letter",
+      "item_kind": "appointment",
+      "match_any": [],
+      "severity": "info",
+      "legal_basis": "sgbv_39",
+      "message": "No follow-up appointment was extracted. Ask your family doctor when you should come back after the hospital stay."
+    },
+    {
+      "id": "C-PLAN-MEDICATION",
+      "type": "requires_item",
+      "applies_to": "medication_plan",
+      "item_kind": "medication",
+      "match_any": [],
+      "severity": "critical",
+      "legal_basis": "sgbv_31a",
+      "message": "This is a medication plan, but no medicines were extracted. Do not rely on this explanation; read the plan itself or ask your pharmacist."
+    },
+    {
+      "id": "C-MISSED-DOSE",
+      "type": "signal_coverage",
+      "applies_to": "medical_document",
+      "item_kind": "medication",
+      "pattern": "(?P<fact>(?-i:[A-ZÄÖÜ][\\wäöüß-]{2,})\\s+\\d+(?:[.,]\\d+)?\\s?(?:mg|µg|mcg|ie|i\\.e\\.|mmol))\\b(?!\\s*/)",
+      "severity": "critical",
+      "message": "The document mentions a medicine and dose ({fact}) that is not part of any extracted medicine. A medicine may be missing — check the document."
+    },
+    {
+      "id": "C-MISSED-SCHEDULE",
+      "type": "signal_coverage",
+      "applies_to": "medical_document",
+      "item_kind": "medication",
+      "pattern": "(?<![\\d.,/])(?P<fact>(?:\\d|½|¼|¾)(?:[.,]5)?\\s*-\\s*(?:\\d|½|¼|¾)(?:[.,]5)?\\s*-\\s*(?:\\d|½|¼|¾)(?:[.,]5)?(?:\\s*-\\s*(?:\\d|½|¼|¾)(?:[.,]5)?)?)(?![\\d.,/])",
+      "severity": "critical",
+      "message": "The document contains an intake schedule ({fact}) that is not part of any extracted medicine. Check the document."
+    },
+    {
+      "id": "C-MISSED-MEDICATION-CHANGE",
+      "type": "signal_coverage",
+      "applies_to": "medical_document",
+      "item_kind": "medication",
+      "pattern": "(?P<fact>(?-i:(?!Dosis|Therapie|Medikation|Behandlung|Einnahme)[A-ZÄÖÜ][\\wäöüß-]{3,}))(?:\\s+\\d+(?:[.,]\\d+)?\\s?(?:mg|µg|ie))?\\s+(?:wurde\\s+|wird\\s+)?(?:abgesetzt|pausiert|neu angesetzt|neu begonnen|reduziert|erhöht)",
+      "severity": "critical",
+      "message": "The document says that a medicine ({fact}) was stopped, paused, started or changed, but it is not in the extracted medicines. Check the document."
+    },
+    {
+      "id": "C-MISSED-FOLLOWUP",
+      "type": "signal_coverage",
+      "applies_to": "medical_document",
+      "item_kind": "appointment",
+      "pattern": "(?:wiedervorstellung|kontrolle|kontrolltermin|termin|nachuntersuchung)[^.]{0,40}?(?:am|:)\\s*(?P<fact>\\d{1,2}\\.\\s?\\d{1,2}\\.\\s?\\d{2,4})",
+      "severity": "warning",
+      "message": "The document mentions a follow-up appointment ({fact}) that is not listed among the important details."
+    },
+    {
+      "id": "C-MISSED-WARNING-SIGN",
+      "type": "signal_coverage",
+      "applies_to": "medical_document",
+      "item_kind": "warning_sign",
+      "pattern": "\\bbei\\s+(?P<fact>[^.;:]{3,70}?)\\s+(?:stellen sie sich\\s+)?(?:bitte\\s+)?(?:sofort|umgehend|unverzüglich)",
+      "severity": "warning",
+      "message": "The document names warning signs ({fact}) that are not listed among the important details."
+    },
+    {
+      "id": "C-MISSED-DIAGNOSIS-CODE",
+      "type": "signal_coverage",
+      "applies_to": "clinical_letter",
+      "item_kind": "diagnosis",
+      "pattern": "(?P<fact>(?-i:\\b[A-TV-Z]\\d{2}(?:\\.\\d{1,2})?[GVAZRLB]?)\\b)",
+      "severity": "info",
+      "message": "The document lists a diagnosis code ({fact}) that is not explained among the important details."
+    },
+    {
+      "id": "C-MISSED-INSTRUCTION",
+      "type": "signal_coverage",
+      "applies_to": "medical_document",
+      "item_kind": "instruction",
+      "pattern": "\\bbitte\\s+(?P<fact>[^.;:]{8,90})",
+      "severity": "info",
+      "message": "The document gives an instruction (“{fact}”) that is not listed among the important details."
+    },
+    {
+      "id": "C-MISSED-CONTACT",
+      "type": "signal_coverage",
+      "applies_to": "medical_document",
+      "item_kind": "contact",
+      "pattern": "(?:telefon|tel\\.)\\s*:?\\s*(?P<fact>\\+?[\\d][\\d /()-]{5,}\\d)",
+      "severity": "info",
+      "message": "The document lists a phone number ({fact}) that is not shown among the important details."
+    },
+    {
+      "id": "M-METHOTREXATE-WEEKLY",
+      "type": "text_pattern",
+      "applies_to": "medical_document",
+      "category": "safety",
+      "pattern": "methotrexat|\\bmtx\\b",
+      "severity": "warning",
+      "message": "Methotrexate for rheumatism or psoriasis is usually taken only ONCE A WEEK. Taking it every day by mistake is dangerous. Check the day on your plan and ask your pharmacist if you are unsure."
+    },
+    {
+      "id": "M-BLOOD-THINNER",
+      "type": "text_pattern",
+      "applies_to": "medical_document",
+      "category": "safety",
+      "pattern": "marcumar|phenprocoumon|falithrom|warfarin|apixaban|eliquis|rivaroxaban|xarelto|edoxaban|lixiana|dabigatran|pradaxa",
+      "severity": "info",
+      "message": "This is a blood thinner. Do not stop or change it on your own, tell every doctor and dentist that you take it, and watch for unusual bleeding."
+    },
+    {
+      "id": "M-INSULIN",
+      "type": "text_pattern",
+      "applies_to": "medical_document",
+      "category": "safety",
+      "pattern": "\\binsulin",
+      "severity": "info",
+      "message": "Insulin doses must be followed exactly. Know the signs of low blood sugar (sweating, shaking, confusion) and always carry some sugar."
+    },
+    {
+      "id": "A-NO-STOP-ADVICE",
+      "type": "output_pattern",
+      "applies_to": "medical_document",
+      "category": "advice",
+      "pattern": "(?<!not )(?<!never )(?<!n't )\\b(?:stop|discontinue|quit|skip|pause)\\s+(?:taking|using)\\b|(?<!not )(?<!never )(?<!n't )\\b(?:stop|discontinue|skip)\\s+(?:the\\s+|your\\s+|this\\s+)?(?:medicine|medication|tablet|pill|drug)s?\\b|(?<!nicht )\\b(?:absetzen|weglassen|pausieren)\\b",
+      "unless_source_pattern": "abgesetzt|absetzen|pausiert|pausieren|nicht mehr einnehmen|beendet|gestoppt",
+      "severity": "critical",
+      "message": "The explanation suggests stopping a medicine, but the document does not say so. Never stop a medicine without asking your doctor.",
+      "backed_by_medication_status": [
+        "stopped"
+      ]
+    },
+    {
+      "id": "A-NO-DOSE-CHANGE-ADVICE",
+      "type": "output_pattern",
+      "applies_to": "medical_document",
+      "category": "advice",
+      "pattern": "(?<!not )(?<!never )(?<!n't )\\b(?:double|halve|increase|reduce|lower|raise)\\s+(?:the\\s+|your\\s+)?dose|\\bdosis\\s+(?:verdoppeln|halbieren|erhöhen|reduzieren)",
+      "unless_source_pattern": "reduziert|erhöht|halbiert|verdoppelt|dosisanpassung|dosisänderung|dosis.{0,20}geändert",
+      "severity": "critical",
+      "message": "The explanation suggests changing a dose, but the document does not say so. Only your doctor can change a dose.",
+      "backed_by_medication_status": [
+        "changed"
+      ]
+    },
+    {
+      "id": "A-NO-FALSE-REASSURANCE",
+      "type": "output_pattern",
+      "applies_to": "medical_document",
+      "category": "advice",
+      "pattern": "nothing to worry about|no need to worry|no need to see a doctor|not serious|harmless|kein grund zur sorge|harmlos|nicht schlimm",
+      "unless_source_pattern": "harmlos|unbedenklich|kein grund zur sorge|gutartig",
+      "severity": "warning",
+      "message": "The explanation reassures you in a way the document does not. Only your doctor can judge how serious something is."
+    },
+    {
+      "id": "E-RED-FLAGS",
+      "type": "escalate_on_pattern",
+      "applies_to": "medical_document",
+      "pattern": "notarzt|notaufnahme|\\b112\\b|brustschmerz|atemnot|luftnot|bewusstlos|lähmung|starke blutung|blut im stuhl|fieber über",
+      "reason": "The document names warning signs ({fact}). If they occur: in an emergency call 112; outside practice hours call 116117.",
+      "resources": [
+        "emergency_112",
+        "bereitschaftsdienst_116117"
+      ]
+    },
+    {
+      "id": "E-UNDERSTAND-YOUR-LETTER",
+      "type": "escalate",
+      "applies_to": "clinical_letter",
+      "legal_basis": "bgb_630e",
+      "reason": "You have a right to an explanation you can understand (§ 630e BGB) and to see your records (§ 630g BGB). Ask your doctor about anything that is unclear.",
+      "resources": [
+        "gp",
+        "washabich",
+        "gesund_bund"
+      ]
+    },
+    {
+      "id": "E-MEDICATION-QUESTIONS",
+      "type": "escalate",
+      "applies_to": "medication_plan",
+      "legal_basis": "sgbv_31a",
+      "reason": "Questions about your medicines? Pharmacists explain them free of charge. Keep this plan with you and show it to every doctor.",
+      "resources": [
+        "pharmacy",
+        "gp"
+      ]
+    }
+  ]
+}

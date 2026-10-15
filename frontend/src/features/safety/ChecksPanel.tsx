@@ -19,6 +19,9 @@ const CATEGORY_LABEL: Record<Finding["category"], string> = {
   injection: "Manipulation",
   quality: "Reading quality",
   escalation: "Get help",
+  advice: "Not in the document",
+  readability: "Hard to read",
+  safety: "Safety note",
 };
 
 interface Props {
@@ -49,7 +52,7 @@ export function ChecksPanel({ checks, coverage, ocrState, onSelectItem }: Props)
           <span className="stat">
             {summary.grounded_items}/{summary.total_items}
           </span>
-          facts traced to the letter text
+          facts traced to the document
         </li>
         <li className={coverageOk === null ? "" : coverageOk ? "ok" : "bad"}>
           <span className="stat">
@@ -61,6 +64,15 @@ export function ChecksPanel({ checks, coverage, ocrState, onSelectItem }: Props)
           <span className="stat">{summary.critical + summary.warnings}</span>
           {summary.critical + summary.warnings === 1 ? "point to check" : "points to check"}
         </li>
+        {checks.readability && (
+          <li
+            className={checks.readability.score >= checks.readability.target ? "ok" : "warn"}
+            title={`Readability score ${checks.readability.score} (target ${checks.readability.target}), ${checks.readability.avg_sentence_words} words per sentence`}
+          >
+            <span className="stat">{Math.round(checks.readability.score)}</span>
+            reading ease: {checks.readability.level}
+          </li>
+        )}
       </ul>
       <p className="hint">
         Document type: <strong>{checks.document_class.label}</strong>
@@ -96,7 +108,7 @@ export function ChecksPanel({ checks, coverage, ocrState, onSelectItem }: Props)
       )}
 
       {summary.critical + summary.warnings === 0 && coverageOk !== false && (
-        <p className="all-clear">✓ No problems found. Every fact was traced back to the letter.</p>
+        <p className="all-clear">✓ No problems found. Every fact was traced back to the document.</p>
       )}
 
       {escalation && (

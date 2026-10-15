@@ -36,6 +36,7 @@ class KnowledgeGraph:
         self.ontology = ontology
         self.rules = ruleset.rules
         self.root = ontology.root
+        self.settings = ontology.settings
         g = nx.DiGraph()
 
         for c in ontology.classes:
@@ -68,11 +69,18 @@ class KnowledgeGraph:
                 g.add_edge(rn, require(_n("kind", kind.value), f"rule {rule.id}"), rel="concerns")
             for res in getattr(rule, "resources", []):
                 g.add_edge(rn, require(_n("resource", res), f"rule {rule.id}"), rel="refers_to")
-            if pattern := getattr(rule, "pattern", None):
-                try:
-                    re.compile(pattern)
-                except re.error as e:
-                    raise KnowledgeError(f"rule {rule.id}: invalid pattern: {e}") from None
+            for attr in ("pattern", "unless_source_pattern"):
+                if pattern := getattr(rule, attr, None):
+                    if any(ord(c) < 32 for c in pattern):
+                        # e.g. "\b" written as a JSON backspace instead of "\\b"
+                        raise KnowledgeError(f"rule {rule.id}: {attr} contains a control character")
+                    try:
+                        re.compile(pattern)
+                    except re.error as e:
+                        raise KnowledgeError(f"rule {rule.id}: invalid {attr}: {e}") from None
+
+        for res in ontology.settings.suspicious_resources:
+            require(_n("resource", res), "settings.suspicious_resources")
 
         isa = g.edge_subgraph([(u, v) for u, v, d in g.edges(data=True) if d["rel"] == "is_a"])
         if not nx.is_directed_acyclic_graph(isa):

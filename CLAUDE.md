@@ -1,17 +1,18 @@
 # CLAUDE.md
 
-BriefVerstehen: photograph an official letter → translation, key facts
-(deadlines, amounts, references) highlighted on the photo, and an accuracy &
-safety harness. FastAPI backend (`backend/`) + React/Vite frontend (`frontend/`),
+BriefVerstehen: photograph a medical document (discharge letter, medication plan;
+default domain) or an official letter → plain-language explanation, key facts and
+medicines highlighted on the photo, a daily medicine plan, read-aloud, and an
+accuracy & safety harness. Health data needs explicit consent (GDPR Art. 9). FastAPI backend (`backend/`) + React/Vite frontend (`frontend/`),
 deployed on Vercel. Read HOW_IT_WORKS.md section 2 for the architecture and file map.
 
 ## Commands (Windows paths; use `.venv/bin/` on macOS/Linux)
 
 ```bash
 # backend/  (run from the backend folder)
-.venv/Scripts/python -m pytest -q                     # 42 tests, no API keys needed
+.venv/Scripts/python -m pytest -q                     # 51 tests, no API keys needed
 .venv/Scripts/python -m ruff check . && .venv/Scripts/python -m ruff format --check .
-.venv/Scripts/python -m evaluation.benchmark          # harness gate: must stay 71/71, 0 false alarms
+.venv/Scripts/python -m evaluation.benchmark          # harness gate: must stay 154/154, 0 false alarms
 .venv/Scripts/python -m uvicorn app.main:app --reload --port 8000 --env-file .env
 .venv/Scripts/python scripts/make_samples.py          # regenerate sample letters + exact answers
 

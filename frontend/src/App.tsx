@@ -1,16 +1,19 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Progress } from "./components/Progress";
 import { APP_NAME } from "./config/app";
+import { DisplaySettings } from "./features/accessibility/DisplaySettings";
 import { useAnalysis } from "./features/analysis/useAnalysis";
 import { InsightsPanel } from "./features/insights/InsightsPanel";
 import { UploadPanel } from "./features/upload/UploadPanel";
 import { DocumentViewer, type ViewMode } from "./features/viewer/DocumentViewer";
+import { highlightItems } from "./lib/highlights";
 
 export default function App() {
   const a = useAnalysis();
   const [mode, setMode] = useState<ViewMode>("highlights");
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  const items = useMemo(() => (a.response ? highlightItems(a.response.result) : []), [a.response]);
 
   return (
     <div className="app">
@@ -19,23 +22,42 @@ export default function App() {
           <img src="/favicon.svg" alt="" width={28} height={28} />
           <span>{APP_NAME}</span>
         </div>
-        <label className="lang">
-          <span>Translate to</span>
-          <select
-            value={a.targetLanguage}
-            onChange={(e) => a.setTargetLanguage(e.target.value)}
-            disabled={a.status === "analyzing"}
-          >
-            {a.meta.languages.map((l) => (
-              <option key={l}>{l}</option>
-            ))}
-          </select>
-        </label>
+        <div className="topbar-controls">
+          {a.meta.profiles.length > 1 && (
+            <label className="lang">
+              <span>Document</span>
+              <select
+                value={a.activeProfile}
+                onChange={(e) => a.switchProfile(e.target.value)}
+                disabled={a.status === "analyzing"}
+              >
+                {a.meta.profiles.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          <label className="lang">
+            <span>Explain in</span>
+            <select
+              value={a.targetLanguage}
+              onChange={(e) => a.setTargetLanguage(e.target.value)}
+              disabled={a.status === "analyzing"}
+            >
+              {a.languages.map((l) => (
+                <option key={l}>{l}</option>
+              ))}
+            </select>
+          </label>
+          <DisplaySettings />
+        </div>
       </header>
 
       {a.meta.analyzer === "mock" && (
         <p className="demo-banner">
-          Demo mode: the server has no AI key, so uploads return a prepared sample analysis instead of reading your letter.
+          Demo mode: the server has no AI key, so uploads return a prepared sample analysis instead of reading your document.
         </p>
       )}
 
@@ -63,11 +85,19 @@ export default function App() {
             samples={a.samples}
             title={a.ui.upload_title}
             hint={a.ui.upload_hint}
+            processing={a.meta.processing}
+            privacy={a.domain?.privacy}
+            consent={a.consent}
+            onConsent={a.setConsent}
           />
           {a.status === "analyzing" && <Progress steps={a.ui.progress} />}
         </main>
       ) : (
         <main className="results">
+          <p className="sr-only" role="status" aria-live="polite">
+            Analysis finished: {a.response.result.medications.length} medicines and {a.response.result.key_items.length}{" "}
+            important details found. {a.response.checks.summary.critical + a.response.checks.summary.warnings} points to check.
+          </p>
           <div className="toolbar">
             <div className="segmented" role="tablist" aria-label="Document view">
               {(
@@ -90,6 +120,7 @@ export default function App() {
             <DocumentViewer
               pages={a.pages}
               result={a.response.result}
+              items={items}
               verifications={a.verifications}
               mode={mode}
               activeItemId={activeItemId}
@@ -100,6 +131,7 @@ export default function App() {
             <InsightsPanel
               result={a.response.result}
               checks={a.response.checks}
+              targetLanguage={a.targetLanguage}
               coverage={a.coverage}
               verifications={a.verifications}
               ocrState={a.ocrState}

@@ -1,5 +1,6 @@
 {
   "id": "scam_inkasso",
+  "domain": "german_letter",
   "description": "Fake debt collection: demands vouchers, 48-hour threat, arrest warrant. Must be flagged as scam.",
   "expected_class": "inkasso",
   "transcript": "Zentrale Forderungsstelle Nord GmbH\nInkasso und Forderungsmanagement\nPostfach 4711, 20095 Hamburg\nDatum: 08.10.2026\nAktenzeichen: ZF-2026-77310\nHerrn\nMax Mustermann\nBeispielweg 12\n12345 Musterstadt\nLetzte Mahnung vor Zwangsvollstreckung\nSehr geehrte Damen und Herren,\ntrotz mehrfacher Aufforderung haben Sie die offene Forderung aus Ihrem Vertrag Nr. 55-9921 nicht beglichen. Offener Betrag: 486,90 EUR.\nZahlen Sie den Betrag innerhalb von 48 Stunden, sonst beantragen wir einen Haftbefehl gegen Sie.\nZahlung bitte ausschließlich per Paysafecard-Gutscheincodes an zahlung@zf-nord.example oder per Überweisung auf IBAN LT12 1000 0111 0100 1000.\nMit freundlichen Grüßen\nForderungsabteilung",
@@ -35,6 +36,7 @@
       "quote": "ZF-2026-77310"
     }
   ],
+  "expected_medications": [],
   "expected_findings": [
     "scam",
     "escalation"

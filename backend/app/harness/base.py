@@ -11,7 +11,7 @@ from typing import Protocol
 
 from ..knowledge import KnowledgeGraph
 from ..schemas.analysis import AnalysisResult
-from ..schemas.harness import DocumentClassInfo, Finding, ItemCheck, Resource
+from ..schemas.harness import DocumentClassInfo, Finding, ItemCheck, Readability, Resource
 
 
 @dataclass(frozen=True)
@@ -28,6 +28,7 @@ class CheckOutput:
     item_checks: dict[str, ItemCheck] = field(default_factory=dict)
     escalation_reasons: list[str] = field(default_factory=list)
     resources: list[Resource] = field(default_factory=list)
+    readability: Readability | None = None
 
     def add_resources(self, kg: KnowledgeGraph, ids: list[str]) -> None:
         """Append help resources from the knowledge graph, without duplicates."""
@@ -40,6 +41,7 @@ class CheckOutput:
         self.findings += other.findings
         self.item_checks.update(other.item_checks)
         self.escalation_reasons += other.escalation_reasons
+        self.readability = other.readability or self.readability
         for r in other.resources:
             if all(x.id != r.id for x in self.resources):
                 self.resources.append(r)

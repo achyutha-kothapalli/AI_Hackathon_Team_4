@@ -1,5 +1,6 @@
 {
   "id": "bussgeldbescheid",
+  "domain": "german_letter",
   "description": "Genuine speeding fine notice: all facts present, no warnings expected.",
   "expected_class": "bussgeldbescheid",
   "transcript": "Stadt Musterstadt\nOrdnungsamt – Bußgeldstelle\nRathausplatz 1, 12345 Musterstadt\nSachbearbeiterin: Frau Weber\nTelefon: 0123 456-789\nDatum: 05.10.2026\nAktenzeichen: OWi 2026/48213\nHerrn\nMax Mustermann\nBeispielweg 12\n12345 Musterstadt\nBußgeldbescheid\nSehr geehrter Herr Mustermann,\nIhnen wird vorgeworfen, am 12.09.2026 um 08:42 Uhr in Musterstadt, Hauptstraße 40, die zulässige Höchstgeschwindigkeit innerhalb geschlossener Ortschaften um 18 km/h überschritten zu haben (§ 41 Abs. 1 i.V.m. § 49 StVO, § 24 StVG).\nGegen Sie wird deshalb eine Geldbuße in Höhe von 70,00 EUR festgesetzt. Zusätzlich sind Gebühren und Auslagen in Höhe von 28,50 EUR zu zahlen. Gesamtbetrag: 98,50 EUR.\nBitte überweisen Sie den Gesamtbetrag bis spätestens 02.11.2026 auf folgendes Konto: Stadtkasse Musterstadt, IBAN DE29 1001 0010 0987 6543 21, Verwendungszweck: Kassenzeichen 5.2026.48213.\nWird nicht fristgerecht gezahlt, kann die Vollstreckung eingeleitet und Erzwingungshaft angeordnet werden.\nRechtsbehelfsbelehrung: Gegen diesen Bescheid können Sie innerhalb von zwei Wochen nach Zustellung schriftlich oder zur Niederschrift Einspruch bei der Stadt Musterstadt, Ordnungsamt, Rathausplatz 1, 12345 Musterstadt, einlegen.\nMit freundlichen Grüßen\nIm Auftrag\nWeber",
@@ -45,6 +46,7 @@
       "quote": "Telefon: 0123 456-789"
     }
   ],
+  "expected_medications": [],
   "expected_findings": [
     "escalation"
   ]

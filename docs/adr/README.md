@@ -13,3 +13,4 @@ decision is never edited, only superseded by a new record.
 | [0005](0005-client-side-preparation-and-ocr.md) | Page preparation and OCR verification in the browser | Accepted |
 | [0006](0006-stateless-privacy-by-design.md) | Stateless, no storage, EU processing option | Accepted |
 | [0007](0007-vercel-deployment.md) | Vercel deployment: one project, optionally two | Accepted |
+| [0008](0008-health-data-consent-and-accessibility.md) | Health data: explicit consent, transparency, no advice; accessibility first | Accepted |

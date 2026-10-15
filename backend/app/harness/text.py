@@ -110,6 +110,12 @@ def alnum(text: str) -> str:
     return re.sub(r"[^\w]|_", "", norm(text))
 
 
+def tokens(text: str) -> str:
+    """Words and numbers separated by single spaces, padded: ' kassenzeichen 5 2026 48213 '.
+    Lets callers test containment on whole tokens (so 'n10' does not match 'metformin1000')."""
+    return " " + " ".join(re.findall(r"[^\W_]+", norm(text))) + " "
+
+
 def words(text: str) -> list[str]:
     return re.findall(r"\w+", norm(text))
 
@@ -195,3 +201,41 @@ def context(doc: str, match: re.Match, width: int = 50) -> str:
         end += 1
     snippet = re.sub(r"\s+", " ", doc[start:end]).strip()
     return ("… " if start > 0 else "") + snippet + (" …" if end < len(doc) else "")
+
+
+# ---------------------------------------------------------------- medication doses
+_FRACTIONS = {"½": 0.5, "¼": 0.25, "¾": 0.75, "1/2": 0.5, "1/4": 0.25, "3/4": 0.75}
+_DOSE = r"(?:\d+(?:[.,]\d+)?|½|¼|¾|1/2|1/4|3/4)"
+_SCHEDULE = re.compile(
+    rf"(?<![\d.,/])({_DOSE})\s*-\s*({_DOSE})\s*-\s*({_DOSE})(?:\s*-\s*({_DOSE}))?(?![\d.,/])"
+)
+
+
+def dose_value(token: str | None) -> float:
+    """'1' -> 1.0, '½' -> 0.5, '1,5' -> 1.5; empty/None -> 0.0; unparseable -> -1."""
+    if token is None or not token.strip():
+        return 0.0
+    t = token.strip()
+    if t in _FRACTIONS:
+        return _FRACTIONS[t]
+    try:
+        return float(t.replace(",", "."))
+    except ValueError:
+        return -1.0
+
+
+def schedules(text: str) -> list[tuple[float, float, float, float]]:
+    """Intake schedules printed as morning-noon-evening(-night), e.g. '1-0-1-0' or '½-0-½'."""
+    out = []
+    for m in _SCHEDULE.finditer(text or ""):
+        out.append(tuple(dose_value(g) for g in m.groups()))  # missing 4th slot -> 0.0
+    return out
+
+
+def generated_text(result) -> str:
+    """Everything the AI wrote for the reader (not copied from the document)."""
+    parts = [result.summary, *result.action_steps]
+    parts += [f"{i.label}. {i.explanation}" for i in result.key_items]
+    for m in getattr(result, "medications", []):
+        parts += [m.purpose or "", m.instructions or ""]
+    return "\n".join(p for p in parts if p)

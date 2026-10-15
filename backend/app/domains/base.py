@@ -38,6 +38,20 @@ class DomainUI:
 
 
 @dataclass(frozen=True)
+class DomainPrivacy:
+    """Data-protection settings (DSGVO/GDPR) for a use case."""
+
+    # "personal" or "health" (special category, Art. 9 GDPR)
+    data_category: str = "personal"
+    # Explicit consent before upload (Art. 9(2)(a) GDPR); enforced by the backend.
+    requires_consent: bool = False
+    # Shown next to the consent checkbox; {provider} and {region} are filled in.
+    consent_text: str | None = None
+    # Warn in the UI if the configured AI provider processes data outside the EU.
+    recommend_eu_processing: bool = False
+
+
+@dataclass(frozen=True)
 class Domain:
     id: str
     name: str
@@ -53,6 +67,7 @@ class Domain:
     # Tesseract language code for the browser's OCR verification.
     ocr_language: str = "deu"
     target_languages: tuple[str, ...] = field(default=("English",))
+    privacy: DomainPrivacy = field(default_factory=DomainPrivacy)
 
     def knowledge(self) -> KnowledgeGraph:
         return load_knowledge(self.folder)

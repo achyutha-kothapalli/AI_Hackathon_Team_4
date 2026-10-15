@@ -16,7 +16,7 @@ from pydantic import ValidationError
 
 from ..core.config import Settings
 from ..schemas.analysis import AnalysisResult
-from .base import AnalysisRequest, AnalyzerError
+from .base import AnalysisRequest, AnalyzerError, ProcessingInfo
 from .prompts import build_system_prompt
 
 log = logging.getLogger(__name__)
@@ -43,6 +43,9 @@ def _schema_unsupported(e: openai.BadRequestError) -> bool:
 
 class TrustedTokensAnalyzer:
     name = "trustedtokens"
+    processing = ProcessingInfo(
+        provider="TrustedTokens (TNG Technology Consulting)", region="Germany (EU)", eu=True
+    )
 
     def __init__(self, settings: Settings):
         if not settings.trustedtokens_api_key:
