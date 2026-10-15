@@ -1,6 +1,6 @@
 # BefundVerstehen Frontend — Design Spec
 
-**Date:** 2026-10-15 · **Status:** Draft for review · **Branch:** `feature/befundverstehen-frontend` (from `develop`)
+**Date:** 2026-10-15 · **Status:** Approved · **Branch:** `feature/befundverstehen-frontend` (from `develop`)
 
 Adapts the standalone BefundVerstehen spec (`hackathonAI/docs/superpowers/specs/2026-10-15-discharge-guide-design.md`)
 to this repo: the UI is rebuilt inside `frontend/` and every piece of patient content comes from the existing
@@ -26,11 +26,30 @@ handout why they were in hospital, what to take when, what to do now, and when t
 | 5 | Removed features | Calendar reminders (`features/calendar/`), document-type switcher in the UI. The `german_letter` domain stays in the backend. |
 | 6 | Languages | Handout/guide language is chosen **before** analysis from the medical domain's 12 `target_languages` (`/api/meta`), default "Einfache Sprache (simple German)". Changing it later re-runs the analysis after a confirm dialog ("This runs a new analysis"). Staff UI is German only. Arabic and Persian set `dir="rtl"` on the handout and guide only. |
 | 7 | Fixed strings | Handout and guide headings, table headers, disclaimer and the general emergency box live in `frontend/src/i18n/handout.ts` for all 12 languages, keyed by the backend's language name. Marked "needs native-speaker and clinical review" in the file header. |
-| 8 | Stack | React 19 + Vite + plain CSS with tokens (no Tailwind). Add only `@fontsource-variable/atkinson-hyperlegible-next` and `lucide-react`. Add `vitest` as a dev dependency. |
-| 9 | Visual tokens | Palette #FAFAF7 background, #176B68 primary, #202D33 foreground, sage / pale-blue surfaces, soft amber for "please check", muted red only for the emergency box. Defined as CSS custom properties in `styles.css`. Light theme only; `prefers-reduced-motion` respected. |
-| 10 | Font | Atkinson Hyperlegible Next, bundled (works offline). Hierarchy by weight and size. |
+| 8 | Stack | React 19 + Vite + plain CSS with tokens (no Tailwind, no copy of the playbook's `components.css`). Add only `lucide-react`; `vitest` as a dev dependency. |
+| 9 | Design system | **Minimal / Mono** from `hackathonAI/playbook/themes/minimal/DESIGN.md` (with `../FOUNDATIONS.md`). Its `theme.css` `:root` block is copied verbatim into `frontend/src/theme.css` (header comment names the source); components use `var(--token)` only. Light only; reduced motion, forced colours and hover = focus-visible parity per FOUNDATIONS §5. See **Design system mapping** below. |
+| 10 | Font | DM Sans (400 and 600 only) for all text, JetBrains Mono 400 for doses, phone numbers, dates and section markers. Both vendored as woff2 from `hackathonAI/playbook/assets/fonts/` into `frontend/public/fonts/` (OFL; no CDN). |
 | 11 | Phone numbers | Plain text, never `tel:` links. |
 | 12 | Source of truth | Nothing appears that is not in the analysis, except the clearly labelled "General advice — not from your letter" emergency box. Where the analysis has no warning signs, the handout and guide say so and name whom to ask. |
+
+## Design system mapping (Minimal / Mono)
+
+| Element here | Minimal / Mono treatment |
+|---|---|
+| Staff UI type | Body 16/1.55, page title 30/600, h2 20/600, labels 14/600 (DESIGN §1.2). Sentence case everywhere. |
+| Patient guide type | **Deliberate exception:** body 18 / 20 (default) / 24 px for older readers (text-size control), headings scaled in `rem` from the same ratios. Same fonts, weights and tokens. |
+| One blue action per viewport | Start: "Analyse letter". Handout tab: "Print / Save as PDF". Read error: "Try again". Everything else outline, ghost or text link. |
+| Workspace tabs | Underline tabs: 14/600, selected = `--foreground` text + 2px black indicator (not blue). |
+| Sections (handout, guide, Check) | Signature motif: full-width 1px `--border` rule, mono marker "01", "02"… in the left gutter, title beside it. |
+| Lists (medicines, diagnoses, contacts, findings, samples) | Rows over cards: open rows, min 48px, 1px top rule. Sample letters are radio-style rows, not cards. Panels (1px border, 12px radius) only for the A4 preview sheets and the consent box. |
+| Status tags ("New", "Changed", "Please check", finding severity) | 4px radius, 1px border, 6px dot + word; dot colour from `--success` / `--warning` / `--destructive`; the word always shows. |
+| Banners (poor image, confidence note, high-severity finding) | `--warning-surface` / `--warning-text` with icon. Errors `--destructive-surface` / `--destructive-text`. Demo mode `--info-surface` / `--info-text`. |
+| Emergency box (112) | The only `--destructive` element on the handout and guide: `--destructive-surface` background, 1px `--destructive` border, siren icon, label "General advice — not from your letter". In print: black border, icon and text (B&W safe). |
+| Low-confidence outline (preview only) | 1px dashed `--warning` + "Please check" status tag. |
+| Doses, times, phone numbers, dates | JetBrains Mono 13–15px, tabular figures. |
+| Motion | Colour-only hover, 140ms; no entrance animations; processing steps change state without movement. |
+| Controls | 40px tall on desktop (44px under 768px); in the patient guide ≥48px. Focus ring 2px `--ring`, 2px offset. Inputs on white only. |
+| Layout | `.container` 1200px, 24px gutters (16px under 768px), 4-based spacing scale. Workspace: settings cols 1–3, preview cols 4–12. |
 
 ## Staff flow
 
@@ -114,7 +133,10 @@ Icon + text, focus moved to the message.
 ## Architecture
 
 ```
+frontend/public/fonts/         dm-sans.woff2, jetbrains-mono.woff2 (from the playbook)
 frontend/src/
+  theme.css                    Minimal / Mono tokens, verbatim from the playbook
+  styles.css                   @font-face, base, layout and component classes (tokens only)
   App.tsx                      screen state machine: start → processing → read-error | workspace
   i18n/handout.ts              fixed strings × 12 languages + rtl list
   features/start/              StartScreen, LanguageSelect, SampleCards
