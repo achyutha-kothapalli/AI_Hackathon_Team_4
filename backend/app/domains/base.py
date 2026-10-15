@@ -49,6 +49,10 @@ class DomainPrivacy:
     consent_text: str | None = None
     # Warn in the UI if the configured AI provider processes data outside the EU.
     recommend_eu_processing: bool = False
+    # Data minimisation (Art. 5(1)(c) GDPR): the browser blacks out personal identifiers
+    # (name, date of birth, address, insurance numbers) before upload. This is the default
+    # for the "Hide personal details" option; the user can switch it off.
+    redact_personal_data: bool = False
 
 
 @dataclass(frozen=True)

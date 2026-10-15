@@ -16,6 +16,16 @@ only with the user's explicit consent for health data.
 - If the configured AI provider processes data outside the EU, the UI says so and
   recommends the EU provider.
 
+## Personal details are hidden before upload
+
+For health documents (and optionally for letters), the browser recognises the text
+itself and blacks out the patient's name, date of birth, postal address and
+insurance or case numbers on a **copy** of each page before anything is sent
+(data minimisation, Art. 5(1)(c) GDPR). Only that copy is uploaded; the original
+photo stays on the device. The user can check exactly what was sent ("Show what
+was sent"). If the text cannot be recognised, nothing is sent unless the user
+switches the option off.
+
 ## What happens to a letter
 
 | Step | Where | Data | Kept? |

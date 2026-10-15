@@ -36,6 +36,7 @@ class PrivacyInfo(BaseModel):
     requires_consent: bool
     consent_text: str | None
     recommend_eu_processing: bool
+    redact_personal_data: bool  # default for "hide personal details before sending"
 
 
 class ProcessingInfoOut(BaseModel):

@@ -115,4 +115,5 @@ def test_meta_reports_processing_and_privacy():
     assert set(body["processing"]) == {"provider", "region", "eu"}
     medical = next(p for p in body["profiles"] if p["id"] == "medical_document")
     assert medical["privacy"]["requires_consent"] and medical["privacy"]["data_category"] == "health"
+    assert medical["privacy"]["redact_personal_data"] is True
     assert "Einfache Sprache (simple German)" in medical["languages"]

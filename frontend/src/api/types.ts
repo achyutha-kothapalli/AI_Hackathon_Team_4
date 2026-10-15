@@ -183,6 +183,7 @@ export interface ProfileInfo {
     requires_consent: boolean;
     consent_text: string | null; // {provider} and {region} are filled in
     recommend_eu_processing: boolean;
+    redact_personal_data: boolean; // default for "hide personal details before sending"
   };
   languages: string[];
 }

@@ -12,7 +12,8 @@ Photograph a discharge letter or medication plan → get a **plain-language
 explanation** (also in *Einfache Sprache*), a **daily medicine plan**, warning
 signs and next steps, **read aloud** if you like, with every fact and dose
 **verified against the document** and highlighted on your photo. Health data is
-only processed with **explicit consent**. The original use case (German official
+only processed with **explicit consent**, and personal details are **blacked out
+on the device before upload**. The original use case (German official
 letters) remains available as a second domain pack.
 
 - **backend/** — FastAPI (Python). Calls Claude or TrustedTokens (EU-hosted models) and returns structured JSON.
@@ -30,7 +31,9 @@ letters) remains available as a second domain pack.
 | [HOW_IT_WORKS.md](HOW_IT_WORKS.md) | Architecture (C4 diagrams, file map), request flow, contracts, harness, deployment |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | Workflow, quality gates, recipes: new domain, rule, check, AI provider |
 | [docs/adr/](docs/adr/) | Architecture decision records: why it is built this way |
-| [PRIVACY.md](PRIVACY.md) | Data flow: what is sent where, and what is kept (nothing) |
+| [PRIVACY.md](PRIVACY.md) | Data flow: what is sent where, and what is kept (nothing); redaction before upload |
+| [OFFICIAL_SOURCES.md](OFFICIAL_SOURCES.md) | Official German and EU sources behind the ontology and rules |
+| [docs/BACKEND_API.md](docs/BACKEND_API.md) | Backend API handoff for frontend work in parallel (+ `docs/openapi.json`) |
 | [CLAUDE.md](CLAUDE.md) | Conventions and commands for Claude Code |
 
 ```

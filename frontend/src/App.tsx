@@ -13,6 +13,7 @@ export default function App() {
   const [mode, setMode] = useState<ViewMode>("highlights");
   const [activeItemId, setActiveItemId] = useState<string | null>(null);
   const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
+  const [showSent, setShowSent] = useState(false);
   const items = useMemo(() => (a.response ? highlightItems(a.response.result) : []), [a.response]);
 
   return (
@@ -89,8 +90,15 @@ export default function App() {
             privacy={a.domain?.privacy}
             consent={a.consent}
             onConsent={a.setConsent}
+            redact={a.redact}
+            onRedact={a.setRedact}
           />
-          {a.status === "analyzing" && <Progress steps={a.ui.progress} />}
+          {a.status === "analyzing" &&
+            (a.phase === "redacting" ? (
+              <Progress steps={["Hiding personal details on your device…"]} />
+            ) : (
+              <Progress steps={a.ui.progress} />
+            ))}
         </main>
       ) : (
         <main className="results">
@@ -112,13 +120,33 @@ export default function App() {
                 </button>
               ))}
             </div>
-            <button type="button" className="btn secondary" onClick={a.reset}>
-              New document
-            </button>
+            <div className="toolbar-right">
+              {a.redactions && (
+                <button
+                  type="button"
+                  className={`btn secondary privacy-toggle ${showSent ? "is-on" : ""}`}
+                  onClick={() => setShowSent((v) => !v)}
+                  aria-pressed={showSent}
+                  title="Personal details were blacked out on your device before upload"
+                >
+                  🔒 {a.redactions.length} hidden · {showSent ? "Show my photo" : "Show what was sent"}
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn secondary"
+                onClick={() => {
+                  setShowSent(false);
+                  a.reset();
+                }}
+              >
+                New document
+              </button>
+            </div>
           </div>
           <div className="columns">
             <DocumentViewer
-              pages={a.pages}
+              pages={showSent && a.sentPages ? a.sentPages : a.pages}
               result={a.response.result}
               items={items}
               verifications={a.verifications}
