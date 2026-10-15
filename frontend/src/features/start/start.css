@@ -1,0 +1,36 @@
+/* Start screen: single column, max 760px (cols 1–8 of the 12-col grid). */
+.start-screen { padding-top: 48px; padding-bottom: 64px; }
+.start-screen > * { max-width: 760px; }
+.start-screen > * + * { margin-top: 40px; }
+.start-screen section > * + * { margin-top: 16px; }
+.start-head h1 { font-size: 30px; line-height: 1.2; letter-spacing: -0.02em; }
+.start-lead { font-size: 18px; margin: 12px 0 0; }
+.start-screen .select { max-width: 360px; }
+
+.drop-zone { border: 1px dashed var(--input); border-radius: var(--radius-lg); padding: 32px; text-align: center; }
+.drop-zone.is-dragging { background: var(--accent); border-color: var(--primary); }
+.drop-title { font-weight: 600; font-size: 18px; margin: 0 0 6px; }
+.drop-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 20px; }
+
+.page-list { list-style: none; margin: 16px 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: 16px; }
+.page-item { position: relative; width: 120px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; background: var(--card); }
+.page-item img { display: block; width: 100%; height: 150px; object-fit: cover; border-bottom: 1px solid var(--border); }
+.page-n { position: absolute; top: 6px; left: 6px; min-width: 22px; padding: 2px 6px; border-radius: var(--radius-badge); background: var(--card); border: 1px solid var(--border); font-size: 12px; text-align: center; }
+.page-actions { display: flex; justify-content: space-between; }
+.page-actions .btn { flex: 1; padding: 0; min-height: 36px; border-radius: 0; }
+.page-actions .btn:disabled { background: transparent; border-color: transparent; color: var(--muted-foreground); opacity: 0.5; }
+
+.samples .rows { margin-top: 8px; }
+.sample-row { display: flex; align-items: center; gap: 12px; cursor: pointer; }
+.sample-row:hover { background: var(--secondary); }
+.sample-row[aria-disabled="true"] { cursor: not-allowed; color: var(--muted-foreground); }
+.sample-radio { width: 16px; height: 16px; flex: none; border: 1px solid var(--border-strong); border-radius: 50%; background: var(--card); }
+.sample-row[aria-checked="true"] .sample-radio { border: 5px solid var(--primary); }
+
+.start-submit { display: grid; gap: 8px; justify-items: start; padding-top: 24px; border-top: 1px solid var(--border); }
+
+@media (max-width: 767px) {
+  .start-screen { padding-top: 24px; }
+  .start-submit .btn-primary { width: 100%; }
+  .drop-zone { padding: 24px 16px; }
+}

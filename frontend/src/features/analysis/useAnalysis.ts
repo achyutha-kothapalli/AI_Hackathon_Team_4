@@ -17,8 +17,9 @@ import {
   type Verification,
 } from "../ocr/verifyHighlights";
 import { fitToBudget, preparePages, releasePages, type PreparedPage } from "../upload/preparePages";
+import { DEFAULT_LANGUAGE, PROFILE, statusAfterCancel, type Status } from "./screen";
 
-export type Status = "idle" | "preparing" | "analyzing" | "done";
+export type { Status } from "./screen";
 export type OcrState = "running" | "done" | "failed";
 export type Phase = "redacting" | "analyzing";
 
@@ -33,8 +34,7 @@ export function useAnalysis() {
   const [ocrState, setOcrState] = useState<OcrState>("running");
   const [coverage, setCoverage] = useState<Coverage | null>(null);
   const [sample, setSample] = useState<string | null>(null);
-  const [targetLanguage, setTargetLanguage] = useState("English");
-  const [profileId, setProfileId] = useState<string | null>(null); // null = backend default
+  const [targetLanguage, setTargetLanguage] = useState(DEFAULT_LANGUAGE);
   const [consent, setConsent] = useState(false);
   // Hide personal details before upload; null = use the domain's default.
   const [redactChoice, setRedactChoice] = useState<boolean | null>(null);
@@ -44,9 +44,11 @@ export function useAnalysis() {
   const abortRef = useRef<AbortController | null>(null);
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
+  const responseRef = useRef<AnalyzeResponse | null>(null);
+  responseRef.current = response;
 
   // The active domain pack configures wording, samples, languages, privacy and OCR language.
-  const activeProfile = profileId ?? meta.default_profile;
+  const activeProfile = PROFILE;
   const domain = meta.profiles.find((p) => p.id === activeProfile);
   const ui = domain?.ui ?? FALLBACK_UI;
   const samples = domain?.samples ?? FALLBACK_SAMPLES;
@@ -56,8 +58,9 @@ export function useAnalysis() {
 
   // Keep the target language valid for the active domain (e.g. "Einfache Sprache" for medical).
   useEffect(() => {
+    if (!domain) return; // the fallback meta (before /api/meta answers) would reset the default to English
     if (languages.length && !languages.includes(targetLanguage)) setTargetLanguage(languages[0]);
-  }, [languages, targetLanguage]);
+  }, [domain, languages, targetLanguage]);
 
   useEffect(() => {
     fetchMeta()
@@ -120,79 +123,106 @@ export function useAnalysis() {
     });
   }, []);
 
-  const analyze = useCallback(async () => {
-    const current = pagesRef.current;
-    if (!current.length) return;
-    if (needsConsent && !consent) {
-      setError("Please confirm the privacy consent first.");
-      return;
-    }
-    setError(null);
-    setStatus("analyzing");
+  const run = useCallback(
+    async (language: string) => {
+      const current = pagesRef.current;
+      if (!current.length) return;
+      if (needsConsent && !consent) {
+        setError("Please confirm the privacy consent first.");
+        return;
+      }
+      setError(null);
+      setStatus("analyzing");
+      setVerifications(null);
+      setCoverage(null);
+      setRedactions(null);
+      setSentPages(null);
+      setOcrState("running");
+      abortRef.current = new AbortController();
+      const signal = abortRef.current.signal;
+      const lang = domain?.ocr_language ?? ocrLanguageFor(domain?.source_language ?? "German");
+
+      let ocr: Promise<OcrWord[][] | null>;
+      let toSend = current;
+      if (redact) {
+        // Data minimisation: OCR first, black out personal data on a copy, upload only the copy.
+        setPhase("redacting");
+        let words: OcrWord[][];
+        try {
+          words = await ocrPages(current, lang);
+        } catch (e) {
+          console.warn("OCR unavailable, cannot redact", e);
+          setError(
+            "Personal details could not be hidden automatically (text recognition is unavailable). " +
+              "Nothing was sent. Switch off “Hide personal details” to send the original, or try again.",
+          );
+          setStatus("idle");
+          return;
+        }
+        if (signal.aborted) return; // cancelled while hiding personal details
+        const found = findPersonalData(words);
+        toSend = await applyRedactions(current, found);
+        setRedactions(found);
+        setSentPages(toSend);
+        ocr = Promise.resolve(words);
+      } else {
+        // OCR runs in parallel with the AI call; it's only used to verify.
+        ocr = ocrPages(current, lang).catch((e) => {
+          console.warn("OCR verification unavailable", e);
+          return null;
+        });
+      }
+      setPhase("analyzing");
+
+      try {
+        const blobs = await fitToBudget(toSend, meta.max_total_upload_bytes);
+        const res = await analyzeDocument(blobs, {
+          targetLanguage: language,
+          profile: activeProfile,
+          sample: sample ?? undefined,
+          consent,
+          signal,
+        });
+        setResponse(res);
+        setStatus("done");
+        const words = await ocr;
+        if (words) {
+          setVerifications(verifyItems(highlightItems(res.result), words));
+          setCoverage(textCoverage(words, res.result.blocks));
+          setOcrState("done");
+        } else {
+          setOcrState("failed");
+        }
+      } catch (e) {
+        if ((e as Error).name === "AbortError") return;
+        setError(e instanceof Error ? e.message : "Something went wrong.");
+        setStatus("idle");
+      }
+    },
+    [meta, domain, activeProfile, sample, consent, needsConsent, redact],
+  );
+
+  const analyze = useCallback(() => run(targetLanguage), [run, targetLanguage]);
+  const reanalyze = useCallback(
+    (language: string) => {
+      setTargetLanguage(language);
+      return run(language);
+    },
+    [run],
+  );
+  const cancel = useCallback(() => {
+    abortRef.current?.abort();
+    setStatus(statusAfterCancel(responseRef.current !== null));
+  }, []);
+  const backToStart = useCallback(() => {
+    setResponse(null);
     setVerifications(null);
     setCoverage(null);
     setRedactions(null);
     setSentPages(null);
-    setOcrState("running");
-    abortRef.current = new AbortController();
-    const lang = domain?.ocr_language ?? ocrLanguageFor(domain?.source_language ?? "German");
-
-    let ocr: Promise<OcrWord[][] | null>;
-    let toSend = current;
-    if (redact) {
-      // Data minimisation: OCR first, black out personal data on a copy, upload only the copy.
-      setPhase("redacting");
-      let words: OcrWord[][];
-      try {
-        words = await ocrPages(current, lang);
-      } catch (e) {
-        console.warn("OCR unavailable, cannot redact", e);
-        setError(
-          "Personal details could not be hidden automatically (text recognition is unavailable). " +
-            "Nothing was sent. Switch off “Hide personal details” to send the original, or try again.",
-        );
-        setStatus("idle");
-        return;
-      }
-      const found = findPersonalData(words);
-      toSend = await applyRedactions(current, found);
-      setRedactions(found);
-      setSentPages(toSend);
-      ocr = Promise.resolve(words);
-    } else {
-      // OCR runs in parallel with the AI call; it's only used to verify.
-      ocr = ocrPages(current, lang).catch((e) => {
-        console.warn("OCR verification unavailable", e);
-        return null;
-      });
-    }
-    setPhase("analyzing");
-
-    try {
-      const blobs = await fitToBudget(toSend, meta.max_total_upload_bytes);
-      const res = await analyzeDocument(blobs, {
-        targetLanguage,
-        profile: activeProfile,
-        sample: sample ?? undefined,
-        consent,
-        signal: abortRef.current.signal,
-      });
-      setResponse(res);
-      setStatus("done");
-      const words = await ocr;
-      if (words) {
-        setVerifications(verifyItems(highlightItems(res.result), words));
-        setCoverage(textCoverage(words, res.result.blocks));
-        setOcrState("done");
-      } else {
-        setOcrState("failed");
-      }
-    } catch (e) {
-      if ((e as Error).name === "AbortError") return;
-      setError(e instanceof Error ? e.message : "Something went wrong.");
-      setStatus("idle");
-    }
-  }, [meta, domain, activeProfile, targetLanguage, sample, consent, needsConsent, redact]);
+    setError(null);
+    setStatus("idle");
+  }, []);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
@@ -211,21 +241,9 @@ export function useAnalysis() {
     setStatus("idle");
   }, []);
 
-  const switchProfile = useCallback(
-    (id: string) => {
-      reset();
-      setConsent(false); // consent is per use case
-      setRedactChoice(null); // back to the new domain's default
-      setProfileId(id);
-    },
-    [reset],
-  );
-
   return {
     meta,
     domain,
-    activeProfile,
-    switchProfile,
     languages,
     needsConsent,
     consent,
@@ -251,6 +269,11 @@ export function useAnalysis() {
     removePage,
     movePage,
     analyze,
+    reanalyze,
+    cancel,
+    backToStart,
     reset,
   };
 }
+
+export type Analysis = ReturnType<typeof useAnalysis>;
