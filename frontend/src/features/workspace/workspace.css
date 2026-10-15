@@ -1,0 +1,16 @@
+.workspace { padding-top: 32px; padding-bottom: 48px; display: grid; gap: 24px; }
+.workspace-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap; }
+.workspace-head h1 { font-size: 30px; line-height: 1.2; letter-spacing: -0.02em; }
+.workspace-head p { margin: 4px 0 0; }
+.workspace-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.workspace-grid { display: grid; grid-template-columns: minmax(240px, 3fr) 9fr; gap: 24px; align-items: start; }
+.handout-settings { display: grid; gap: 24px; position: sticky; top: 24px; }
+.handout-settings fieldset { border: 0; border-top: 1px solid var(--border); margin: 0; padding: 16px 0 0; display: grid; gap: 12px; }
+.handout-settings legend { padding: 0; float: left; width: 100%; margin-bottom: 12px; }
+.segmented-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.workspace-grid > :last-child { min-width: 0; background: var(--secondary); border-radius: var(--radius-lg); }
+@media (max-width: 1023px) {
+  .workspace-grid { grid-template-columns: 1fr; }
+  .handout-settings { position: static; }
+}
+.demo-strip { padding-top: 16px; }
