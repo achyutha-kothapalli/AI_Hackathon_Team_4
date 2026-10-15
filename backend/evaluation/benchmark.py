@@ -30,8 +30,7 @@ def load_case(folder: Path) -> tuple[dict, AnalysisResult]:
     return expected, result
 
 
-def run(domain: str = "german_letter") -> dict:
-    kg = get_domain(domain).knowledge()
+def run() -> dict:
     by_type: dict[str, list[bool]] = defaultdict(list)
     misses: list[str] = []
     false_alarms: list[str] = []
@@ -39,6 +38,7 @@ def run(domain: str = "german_letter") -> dict:
 
     for folder in sorted(p for p in CASES.iterdir() if p.is_dir()):
         expected, reference = load_case(folder)
+        kg = get_domain(expected.get("domain", "german_letter")).knowledge()
         clean = run_harness(reference, kg)
         for fa in clean_false_alarms(clean, set(expected["expected_findings"])):
             false_alarms.append(f"{folder.name}: {fa}")
@@ -48,7 +48,8 @@ def run(domain: str = "german_letter") -> dict:
             expected_findings_ok.append(f"{folder.name}: {cat} {'✓' if ok else '✗'}")
             by_type[f"expected finding: {cat}"].append(ok)
 
-        for fault in generate(reference):
+        categories = {r.category.value for r in kg.rules if getattr(r, "category", None)}
+        for fault in generate(reference, categories):
             hit = fault.detected(run_harness(fault.result, kg))
             by_type[fault.name].append(hit)
             if not hit:

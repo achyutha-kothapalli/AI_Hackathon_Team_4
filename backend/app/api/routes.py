@@ -6,7 +6,15 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 
 from ..core.config import APP_VERSION, Settings, get_settings
 from ..domains import DOMAINS, Domain, get_domain
-from ..schemas.api import AnalyzeResponse, DomainUIInfo, MetaResponse, ProfileInfo, SampleInfo
+from ..schemas.api import (
+    AnalyzeResponse,
+    DomainUIInfo,
+    MetaResponse,
+    PrivacyInfo,
+    ProcessingInfoOut,
+    ProfileInfo,
+    SampleInfo,
+)
 from ..services.analysis_service import AnalysisService
 from .deps import get_service
 
@@ -34,6 +42,13 @@ def _profile_info(d: Domain) -> ProfileInfo:
             progress=list(d.ui.progress),
         ),
         samples=[SampleInfo(id=s.id, label=s.label, image=s.image) for s in d.samples],
+        privacy=PrivacyInfo(
+            data_category=d.privacy.data_category,
+            requires_consent=d.privacy.requires_consent,
+            consent_text=d.privacy.consent_text,
+            recommend_eu_processing=d.privacy.recommend_eu_processing,
+        ),
+        languages=list(d.target_languages),
     )
 
 
@@ -46,6 +61,11 @@ def meta(
     return MetaResponse(
         version=APP_VERSION,
         analyzer=service.analyzer_name,
+        processing=ProcessingInfoOut(
+            provider=service.processing.provider,
+            region=service.processing.region,
+            eu=service.processing.eu,
+        ),
         default_profile=settings.default_profile,
         profiles=[_profile_info(d) for d in DOMAINS.values()],
         languages=list(service.domain(None).target_languages),
@@ -71,6 +91,7 @@ async def analyze(
     profile: Annotated[str | None, Form(description="Domain id, e.g. german_letter.")] = None,
     target_language: Annotated[str, Form()] = "English",
     sample: Annotated[str | None, Form(description="Bundled sample id (demo mode only).")] = None,
+    consent: Annotated[bool, Form(description="Explicit consent (required for health documents).")] = False,
 ) -> AnalyzeResponse:
     data = [await f.read() for f in files]
-    return await service.analyze(data, profile, target_language, sample)
+    return await service.analyze(data, profile, target_language, sample, consent)

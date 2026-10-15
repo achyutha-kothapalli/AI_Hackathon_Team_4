@@ -6,6 +6,7 @@
     checks/knowledge_rules.py  knowledge-graph rules: "nothing lost", legal, scam, escalation
     checks/injection.py     prompt-injection safeguard
     checks/quality.py       reading-quality and low-confidence safeguards
+    checks/readability.py   health literacy: is the explanation easy to read?
     text.py                 deterministic text helpers (numbers, dates, amounts, IBANs)
 
 The harness never edits the AI's answer; it reports findings so the UI can

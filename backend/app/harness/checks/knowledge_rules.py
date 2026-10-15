@@ -31,6 +31,32 @@ def _matching_items(result: AnalysisResult, kind, keywords: list[str]) -> list[K
     return out
 
 
+def _matching_medications(result: AnalysisResult, kind, keywords: list[str]) -> bool:
+    """Structured medications satisfy rules that require a 'medication' fact."""
+    if kind != "medication":
+        return False
+    return any(
+        not keywords or any(k in text.norm(f"{md.name} {md.source_quote}") for k in keywords)
+        for md in result.medications
+    )
+
+
+def _sentence_at(body: str, match: re.Match) -> str:
+    """The sentence (or line) of `body` that contains the match."""
+    start = max(body.rfind(c, 0, match.start()) for c in ".!?\n") + 1
+    ends = [i for i in (body.find(c, match.end()) for c in ".!?\n") if i != -1]
+    return body[start : min(ends) if ends else len(body)]
+
+
+def _output_backed(rule, result: AnalysisResult, generated: str, match: re.Match, doc: str) -> bool:
+    """Is the AI's statement supported by the document? See OutputPatternRule."""
+    sentence = text.alnum(_sentence_at(generated, match))
+    named = [md for md in result.medications if text.alnum(md.name) and text.alnum(md.name) in sentence]
+    if named and rule.backed_by_medication_status:
+        return all(md.status.value in rule.backed_by_medication_status for md in named)
+    return bool(rule.unless_source_pattern and re.search(rule.unless_source_pattern, doc, re.IGNORECASE))
+
+
 def _legal_note(kg: KnowledgeGraph, legal_id: str | None) -> str | None:
     if not legal_id:
         return None
@@ -40,14 +66,19 @@ def _legal_note(kg: KnowledgeGraph, legal_id: str | None) -> str | None:
 
 def apply_rules(result: AnalysisResult, kg: KnowledgeGraph, class_id: str, doc: str) -> CheckOutput:
     out = CheckOutput()
-    covered = [text.alnum(i.source_quote + " " + i.value) for i in result.key_items]
+    covered = [text.tokens(f"{i.source_quote} | {i.value}") for i in result.key_items]
+    covered += [
+        text.tokens(f"{md.source_quote} | {md.name} {md.strength or ''}") for md in result.medications
+    ]
     is_authority = kg.has_attr(class_id, "is_authority")
 
     for rule in kg.rules_for(class_id):
         legal = _legal_note(kg, rule.legal_basis)
 
         if isinstance(rule, m.RequiresItemRule):
-            if not _matching_items(result, rule.item_kind, rule.match_any):
+            if not _matching_items(result, rule.item_kind, rule.match_any) and not _matching_medications(
+                result, rule.item_kind, rule.match_any
+            ):
                 out.findings.append(
                     Finding(
                         rule_id=rule.id,
@@ -62,8 +93,8 @@ def apply_rules(result: AnalysisResult, kg: KnowledgeGraph, class_id: str, doc: 
             seen: set[str] = set()
             for match in re.finditer(rule.pattern, doc, re.IGNORECASE):
                 fact = match.group("fact").strip().rstrip(".,;:")
-                key = text.alnum(fact)
-                if not key or key in seen or any(key in c for c in covered):
+                key = text.tokens(fact)
+                if not key.strip() or key in seen or any(key in c for c in covered):
                     continue
                 seen.add(key)
                 out.findings.append(
@@ -151,6 +182,21 @@ def apply_rules(result: AnalysisResult, kg: KnowledgeGraph, class_id: str, doc: 
                         severity=Severity.info,
                         message=rule.reason.format(fact=match.group(0)),
                         evidence=text.context(doc, match),
+                    )
+                )
+
+        elif isinstance(rule, m.OutputPatternRule):
+            generated = text.generated_text(result)
+            match = re.search(rule.pattern, generated, re.IGNORECASE)
+            if match and not _output_backed(rule, result, generated, match, doc):
+                out.findings.append(
+                    Finding(
+                        rule_id=rule.id,
+                        category=rule.category,
+                        severity=rule.severity,
+                        message=rule.message,
+                        evidence=text.context(generated, match),
+                        legal_basis=legal,
                     )
                 )
     return out

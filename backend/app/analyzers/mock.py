@@ -7,11 +7,12 @@ domain's first sample.
 """
 
 from ..schemas.analysis import AnalysisResult
-from .base import AnalysisRequest, AnalyzerError
+from .base import AnalysisRequest, AnalyzerError, ProcessingInfo
 
 
 class MockAnalyzer:
     name = "mock"
+    processing = ProcessingInfo(provider="none (demo mode)", region="no data leaves the server", eu=True)
 
     async def analyze(self, request: AnalysisRequest) -> AnalysisResult:
         domain = request.domain

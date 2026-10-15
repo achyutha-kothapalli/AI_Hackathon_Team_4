@@ -32,10 +32,8 @@ def run_harness(
         for f in out.findings
     )
     if scam_suspected:
-        out.escalation_reasons.insert(
-            0, "This letter shows signs of fraud. Do not pay or reply before verifying it."
-        )
-        out.add_resources(kg, ["verbraucherzentrale", "police"])
+        out.escalation_reasons.insert(0, kg.settings.suspicious_reason)
+        out.add_resources(kg, kg.settings.suspicious_resources)
 
     escalation = (
         Escalation(reason=" ".join(dict.fromkeys(out.escalation_reasons)), resources=out.resources)
@@ -48,8 +46,9 @@ def run_harness(
         item_checks=out.item_checks,
         escalation=escalation,
         scam_suspected=scam_suspected,
+        readability=out.readability,
         summary=CheckSummary(
-            total_items=len(result.key_items),
+            total_items=len(result.key_items) + len(result.medications),
             grounded_items=sum(1 for c in out.item_checks.values() if c.grounded),
             critical=sum(1 for f in out.findings if f.severity == Severity.critical),
             warnings=sum(1 for f in out.findings if f.severity == Severity.warning),

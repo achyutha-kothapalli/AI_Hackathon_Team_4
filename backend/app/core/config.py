@@ -36,7 +36,7 @@ class Settings:
     # Must be a vision-capable model id from GET /v1/models.
     trustedtokens_model: str = field(default_factory=lambda: _env("TRUSTEDTOKENS_MODEL", "Qwen/Qwen3.8-27B"))
     # Domain pack used when the client sends none (see app/domains/).
-    default_profile: str = field(default_factory=lambda: _env("DEFAULT_PROFILE", "german_letter"))
+    default_profile: str = field(default_factory=lambda: _env("DEFAULT_PROFILE", "medical_document"))
     max_pages: int = field(default_factory=lambda: int(_env("MAX_PAGES", "6")))
     # Vercel rejects request bodies above 4.5 MB, so the frontend compresses
     # images before upload; this is the server-side guard.

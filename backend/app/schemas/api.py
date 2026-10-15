@@ -31,6 +31,21 @@ class DomainUIInfo(BaseModel):
     progress: list[str]
 
 
+class PrivacyInfo(BaseModel):
+    data_category: str  # "personal" or "health" (Art. 9 GDPR)
+    requires_consent: bool
+    consent_text: str | None
+    recommend_eu_processing: bool
+
+
+class ProcessingInfoOut(BaseModel):
+    """Who processes uploads and where (GDPR transparency)."""
+
+    provider: str
+    region: str
+    eu: bool
+
+
 class ProfileInfo(BaseModel):
     """A domain pack, as the UI sees it (called "profile" in the API)."""
 
@@ -41,6 +56,8 @@ class ProfileInfo(BaseModel):
     ocr_language: str
     ui: DomainUIInfo
     samples: list[SampleInfo]
+    privacy: PrivacyInfo
+    languages: list[str]
 
 
 class MetaResponse(BaseModel):
@@ -48,6 +65,7 @@ class MetaResponse(BaseModel):
 
     version: str
     analyzer: str
+    processing: ProcessingInfoOut
     default_profile: str
     profiles: list[ProfileInfo]
     languages: list[str]

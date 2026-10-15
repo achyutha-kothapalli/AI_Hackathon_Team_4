@@ -8,7 +8,21 @@ from .grounding import GroundingCheck
 from .injection import InjectionCheck
 from .knowledge_rules import KnowledgeRulesCheck
 from .quality import QualityCheck
+from .readability import ReadabilityCheck
 
-DEFAULT_CHECKS = (GroundingCheck(), KnowledgeRulesCheck(), InjectionCheck(), QualityCheck())
+DEFAULT_CHECKS = (
+    GroundingCheck(),
+    KnowledgeRulesCheck(),
+    InjectionCheck(),
+    QualityCheck(),
+    ReadabilityCheck(),
+)
 
-__all__ = ["DEFAULT_CHECKS", "GroundingCheck", "InjectionCheck", "KnowledgeRulesCheck", "QualityCheck"]
+__all__ = [
+    "DEFAULT_CHECKS",
+    "GroundingCheck",
+    "InjectionCheck",
+    "KnowledgeRulesCheck",
+    "QualityCheck",
+    "ReadabilityCheck",
+]

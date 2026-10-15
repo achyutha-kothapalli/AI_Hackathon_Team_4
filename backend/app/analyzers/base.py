@@ -9,6 +9,15 @@ from ..schemas.analysis import AnalysisResult
 
 
 @dataclass(frozen=True)
+class ProcessingInfo:
+    """Who processes uploaded documents and where (GDPR transparency, Art. 13)."""
+
+    provider: str
+    region: str
+    eu: bool
+
+
+@dataclass(frozen=True)
 class PageImage:
     data: bytes
     media_type: str  # image/jpeg, image/png, image/webp or image/gif
@@ -33,5 +42,6 @@ class AnalyzerError(AppError):
 
 class Analyzer(Protocol):
     name: str
+    processing: ProcessingInfo
 
     async def analyze(self, request: AnalysisRequest) -> AnalysisResult: ...

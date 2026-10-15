@@ -1,0 +1,248 @@
+{
+  "$comment": "Ontology for German medical documents. Classes form an is-a hierarchy (multiple parents allowed); rules attached to a class apply to all its descendants. Loaded into a networkx graph by app/knowledge/graph.py.",
+  "version": "1.0",
+  "root": "medical_document",
+  "settings": {
+    "readability_target": 60,
+    "suspicious_reason": "This document shows signs of manipulation. Do not change any medicine because of it. Ask your doctor or pharmacist to confirm it.",
+    "suspicious_resources": [
+      "gp",
+      "pharmacy"
+    ]
+  },
+  "classes": [
+    {
+      "id": "medical_document",
+      "label": "Medical document",
+      "parents": [],
+      "keywords": []
+    },
+    {
+      "id": "clinical_letter",
+      "label": "Doctor's letter (Arztbrief)",
+      "parents": [
+        "medical_document"
+      ],
+      "keywords": [
+        "arztbrief",
+        "sehr geehrte frau kollegin",
+        "sehr geehrter herr kollege",
+        "diagnose",
+        "anamnese",
+        "procedere"
+      ]
+    },
+    {
+      "id": "discharge_letter",
+      "label": "Hospital discharge letter (Entlassbrief)",
+      "parents": [
+        "clinical_letter"
+      ],
+      "keywords": [
+        "entlassbrief",
+        "entlassungsbericht",
+        "entlassung",
+        "stationär",
+        "stationären aufenthalt",
+        "aufnahme"
+      ]
+    },
+    {
+      "id": "findings_report",
+      "label": "Findings report (Befundbericht)",
+      "parents": [
+        "clinical_letter"
+      ],
+      "keywords": [
+        "befundbericht",
+        "befund",
+        "mrt",
+        "ct",
+        "röntgen",
+        "sonographie",
+        "beurteilung"
+      ]
+    },
+    {
+      "id": "medication_plan",
+      "label": "Medication plan (Medikationsplan)",
+      "parents": [
+        "medical_document"
+      ],
+      "keywords": [
+        "medikationsplan",
+        "wirkstoff",
+        "handelsname",
+        "morgens",
+        "mittags",
+        "abends",
+        "zur nacht"
+      ]
+    },
+    {
+      "id": "lab_report",
+      "label": "Lab report (Laborbefund)",
+      "parents": [
+        "medical_document"
+      ],
+      "keywords": [
+        "laborbefund",
+        "referenzbereich",
+        "normbereich",
+        "einheit",
+        "blutbild"
+      ]
+    },
+    {
+      "id": "referral",
+      "label": "Referral (Überweisung)",
+      "parents": [
+        "medical_document"
+      ],
+      "keywords": [
+        "überweisung",
+        "überweisungsschein",
+        "auftrag",
+        "fragestellung"
+      ]
+    },
+    {
+      "id": "sick_note",
+      "label": "Sick note (Arbeitsunfähigkeitsbescheinigung)",
+      "parents": [
+        "medical_document"
+      ],
+      "keywords": [
+        "arbeitsunfähigkeit",
+        "au-bescheinigung",
+        "arbeitsunfähig seit"
+      ]
+    }
+  ],
+  "legal_bases": [
+    {
+      "id": "bgb_630e",
+      "label": "§ 630e BGB",
+      "text": "Patients must be informed about their treatment in a way they can understand."
+    },
+    {
+      "id": "bgb_630g",
+      "label": "§ 630g BGB",
+      "text": "Patients have the right to see their medical records and get copies."
+    },
+    {
+      "id": "sgbv_31a",
+      "label": "§ 31a SGB V",
+      "text": "People who take at least three prescribed medicines long-term have a right to a medication plan."
+    },
+    {
+      "id": "sgbv_39",
+      "label": "§ 39 (1a) SGB V",
+      "text": "Hospitals must organise the care you need after discharge (discharge management)."
+    },
+    {
+      "id": "dsgvo_art9",
+      "label": "Art. 9 DSGVO / GDPR",
+      "text": "Health data is a special category of personal data and may only be processed with explicit consent or another specific legal basis."
+    },
+    {
+      "id": "dsgvo_art5",
+      "label": "Art. 5 DSGVO / GDPR",
+      "text": "Personal data must be limited to what is necessary and kept no longer than needed."
+    }
+  ],
+  "item_kinds": [
+    {
+      "id": "medication",
+      "label": "Medication"
+    },
+    {
+      "id": "diagnosis",
+      "label": "Diagnosis"
+    },
+    {
+      "id": "warning_sign",
+      "label": "Warning sign"
+    },
+    {
+      "id": "instruction",
+      "label": "Instruction"
+    },
+    {
+      "id": "appointment",
+      "label": "Appointment"
+    },
+    {
+      "id": "deadline",
+      "label": "Deadline"
+    },
+    {
+      "id": "contact",
+      "label": "Contact"
+    },
+    {
+      "id": "reference",
+      "label": "Reference"
+    },
+    {
+      "id": "consequence",
+      "label": "Consequence"
+    },
+    {
+      "id": "document_required",
+      "label": "Documents"
+    },
+    {
+      "id": "payment",
+      "label": "Payment"
+    },
+    {
+      "id": "other",
+      "label": "Other"
+    }
+  ],
+  "resources": [
+    {
+      "id": "emergency_112",
+      "label": "Emergency number 112",
+      "url": null,
+      "description": "For life-threatening symptoms such as chest pain, breathing problems or signs of a stroke, call 112."
+    },
+    {
+      "id": "bereitschaftsdienst_116117",
+      "label": "116117 – medical on-call service",
+      "url": "https://www.116117.de",
+      "description": "For urgent problems outside practice opening hours that are not life-threatening."
+    },
+    {
+      "id": "gp",
+      "label": "Your family doctor (Hausarzt)",
+      "url": null,
+      "description": "Ask about anything that is unclear. Bring this explanation and your medication plan."
+    },
+    {
+      "id": "pharmacy",
+      "label": "Your pharmacy",
+      "url": null,
+      "description": "Pharmacists explain your medicines and check them for interactions, free of charge."
+    },
+    {
+      "id": "washabich",
+      "label": "Was hab' ich? – findings in plain language",
+      "url": "https://washabich.de",
+      "description": "Free service: medical students and doctors translate medical findings into easy language."
+    },
+    {
+      "id": "gesund_bund",
+      "label": "gesund.bund.de",
+      "url": "https://gesund.bund.de",
+      "description": "Official health information of the German Federal Ministry of Health, in plain language."
+    },
+    {
+      "id": "upd",
+      "label": "Independent Patient Advice (UPD)",
+      "url": "https://www.patientenberatung.de",
+      "description": "Free, independent advice on health and patient rights."
+    }
+  ]
+}

@@ -40,10 +40,24 @@ class ResourceDef(_Strict):
     description: str
 
 
+class HarnessSettings(_Strict):
+    """Per-domain tuning of built-in checks."""
+
+    # Minimum readability score (Flesch / Amstad, 0-100) for the AI's explanation;
+    # null disables the readability check.
+    readability_target: float | None = None
+    # Shown when a document looks fraudulent or manipulated (critical scam/injection finding).
+    suspicious_reason: str = (
+        "This document shows signs of manipulation or fraud. Verify it with the sender before acting on it."
+    )
+    suspicious_resources: list[str] = []
+
+
 class Ontology(_Strict):
     comment: str | None = Field(default=None, alias="$comment")
     version: str
     root: str
+    settings: HarnessSettings = HarnessSettings()
     classes: list[DocClass]
     legal_bases: list[LegalBasis]
     item_kinds: list[ItemKindDef]
@@ -121,6 +135,27 @@ class EscalateOnPatternRule(_RuleBase):
     resources: list[str]
 
 
+class OutputPatternRule(_RuleBase):
+    """Checks the AI's OWN wording (summary, steps, explanations), not the document.
+
+    Fires when `pattern` matches the generated text and the statement is not backed
+    by the document. Used to stop the explanation from giving advice the document
+    does not contain. "Backed" means:
+      - if the matching sentence names an extracted medication and
+        `backed_by_medication_status` is set: every named medication has one of
+        those statuses (e.g. "stop taking X" is only fine if X is 'stopped');
+      - otherwise: `unless_source_pattern` matches the document text.
+    """
+
+    type: Literal["output_pattern"]
+    category: FindingCategory
+    pattern: str
+    unless_source_pattern: str | None = None
+    backed_by_medication_status: list[str] = []
+    severity: Severity
+    message: str
+
+
 Rule = Annotated[
     RequiresItemRule
     | SignalCoverageRule
@@ -129,7 +164,8 @@ Rule = Annotated[
     | ForeignIbanRule
     | IbanChecksumRule
     | EscalateRule
-    | EscalateOnPatternRule,
+    | EscalateOnPatternRule
+    | OutputPatternRule,
     Field(discriminator="type"),
 ]
 

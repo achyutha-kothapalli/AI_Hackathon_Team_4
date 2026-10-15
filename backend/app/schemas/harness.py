@@ -23,6 +23,9 @@ class FindingCategory(str, Enum):
     injection = "injection"  # text in the letter tried to instruct the AI
     quality = "quality"  # photo or reading quality
     escalation = "escalation"  # high-stakes letter: get human help
+    advice = "advice"  # the AI's own wording suggests something the document does not say
+    readability = "readability"  # explanation too hard for the target reader
+    safety = "safety"  # domain safety note, e.g. a high-risk medicine
 
 
 class Finding(BaseModel):
@@ -70,10 +73,23 @@ class CheckSummary(BaseModel):
     infos: int
 
 
+class Readability(BaseModel):
+    """How easy the AI's explanation is to read (Flesch Reading Ease; Amstad for German)."""
+
+    score: float = Field(description="0-100, higher is easier.")
+    level: str = Field(
+        description="'very easy', 'easy', 'fairly easy', 'standard', 'difficult' or 'very difficult'."
+    )
+    target: float = Field(description="Minimum score the domain aims for.")
+    avg_sentence_words: float
+    language: str
+
+
 class HarnessReport(BaseModel):
     document_class: DocumentClassInfo
     findings: list[Finding]
     item_checks: dict[str, ItemCheck]
     escalation: Escalation | None
     scam_suspected: bool
+    readability: Readability | None = None
     summary: CheckSummary

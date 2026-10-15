@@ -28,7 +28,8 @@ export const FALLBACK_SAMPLES: SampleInfo[] = [
 export const FALLBACK_META: Meta = {
   version: "unknown",
   analyzer: "unknown",
-  default_profile: "german_letter",
+  processing: { provider: "the AI service", region: "unknown", eu: false },
+  default_profile: "medical_document",
   profiles: [],
   languages: ["English"],
   max_pages: 6,

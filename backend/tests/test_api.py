@@ -29,7 +29,7 @@ def test_analyze_sample_letter():
     res = client.post(
         "/api/analyze",
         files=[("files", ("page1.png", png, "image/png"))],
-        data={"target_language": "English"},
+        data={"target_language": "English", "profile": "german_letter"},
     )
     assert res.status_code == 200, res.text
     body = res.json()
@@ -62,7 +62,11 @@ def test_unreadable_photo_is_refused(monkeypatch):
         return result
 
     monkeypatch.setattr(MockAnalyzer, "analyze", unreadable)
-    res = client.post("/api/analyze", files=[("files", ("p.png", SAMPLE.read_bytes(), "image/png"))])
+    res = client.post(
+        "/api/analyze",
+        files=[("files", ("p.png", SAMPLE.read_bytes(), "image/png"))],
+        data={"profile": "german_letter"},
+    )
     assert res.status_code == 422 and "retake" in res.json()["detail"]
 
 
@@ -87,3 +91,28 @@ def test_sniff():
 def test_system_prompt_includes_profile_and_language():
     prompt = build_system_prompt(get_domain("german_letter"), "Turkish")
     assert "Turkish" in prompt and "Einspruch" in prompt and "{" not in prompt
+
+
+def test_health_documents_require_explicit_consent():
+    files = [("files", ("p.png", SAMPLE.read_bytes(), "image/png"))]
+    res = client.post("/api/analyze", files=files, data={"profile": "medical_document"})
+    assert res.status_code == 428 and "consent" in res.json()["detail"]
+    res = client.post(
+        "/api/analyze",
+        files=files,
+        data={"profile": "medical_document", "consent": "true", "sample": "entlassbrief"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["checks"]["document_class"]["id"] == "discharge_letter"
+    assert len(body["result"]["medications"]) == 4
+    assert body["checks"]["readability"]["score"] >= body["checks"]["readability"]["target"]
+
+
+def test_meta_reports_processing_and_privacy():
+    body = client.get("/api/meta").json()
+    assert body["default_profile"] == "medical_document"
+    assert set(body["processing"]) == {"provider", "region", "eu"}
+    medical = next(p for p in body["profiles"] if p["id"] == "medical_document")
+    assert medical["privacy"]["requires_consent"] and medical["privacy"]["data_category"] == "health"
+    assert "Einfache Sprache (simple German)" in medical["languages"]

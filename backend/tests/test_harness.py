@@ -127,3 +127,66 @@ def test_fault_injection_benchmark_catches_everything_without_false_alarms():
     assert result["false_alarms"] == []
     assert result["misses"] == [], result["misses"]
     assert result["caught"] == result["total"] > 50
+
+
+# ------------------------------------------------------------------ medical domain
+MED = get_domain("medical_document")
+MED_KG = MED.knowledge()
+
+
+def med_case(name: str) -> AnalysisResult:
+    return AnalysisResult.model_validate_json(MED.sample_answer(name).read_text(encoding="utf-8"))
+
+
+def test_medical_samples_are_clean_and_readable():
+    for name in ("entlassbrief", "medikationsplan"):
+        report = run_harness(med_case(name), MED_KG)
+        assert report.summary.grounded_items == report.summary.total_items
+        assert report.summary.critical == 0
+        assert report.readability and report.readability.score >= report.readability.target
+
+
+def test_dose_schedule_is_checked_slot_by_slot():
+    r = med_case("entlassbrief")
+    ramipril = next(m for m in r.medications if m.name == "Ramipril")
+    ramipril.evening, ramipril.morning = "0", "1"  # printed 1-0-1-0
+    ramipril.noon = "1"  # now 1-1-0-0: same digits, wrong slots
+    report = run_harness(r, MED_KG)
+    assert "dose_mismatch" in report.item_checks[ramipril.id].issues
+
+
+def test_stop_advice_is_medication_aware():
+    r = med_case("entlassbrief")  # Metformin is paused, Ramipril is continued
+    ok = r.model_copy(deep=True)
+    ok.action_steps.append("Stop taking Metformin until your doctor says so.")
+    bad = r.model_copy(deep=True)
+    bad.action_steps.append("You can stop taking Ramipril now.")
+    safe = r.model_copy(deep=True)
+    safe.action_steps.append("Do not stop taking Ramipril on your own.")
+
+    def advice(res):
+        return [f.rule_id for f in run_harness(res, MED_KG).findings if f.category.value == "advice"]  # noqa: E731
+
+    assert advice(ok) == [] and advice(safe) == []
+    assert advice(bad) == ["A-NO-STOP-ADVICE"]
+
+
+def test_weekly_methotrexate_safety_note():
+    ids = {f.rule_id for f in run_harness(med_case("medikationsplan"), MED_KG).findings}
+    assert "M-METHOTREXATE-WEEKLY" in ids
+
+
+def test_short_codes_do_not_match_inside_longer_tokens():
+    r = med_case("entlassbrief")
+    r.key_items = [i for i in r.key_items if "N10" not in i.value]  # drop the kidney diagnosis
+    ids = {f.rule_id for f in run_harness(r, MED_KG).findings}
+    assert "C-MISSED-DIAGNOSIS-CODE" in ids  # 'N10' must not count as covered by 'Metformin 1000'
+
+
+def test_control_characters_in_patterns_are_rejected():
+    folder = MED.folder
+    onto = json.loads((folder / "ontology.json").read_text(encoding="utf-8"))
+    rules = json.loads((folder / "rules.json").read_text(encoding="utf-8"))
+    rules["rules"][0] = {**rules["rules"][4], "id": "X", "pattern": "\bbitte"}  # JSON "\b" = backspace
+    with pytest.raises(KnowledgeError, match="control character"):
+        KnowledgeGraph(Ontology.model_validate(onto), RuleSet.model_validate(rules))

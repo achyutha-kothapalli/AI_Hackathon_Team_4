@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { analyzeDocument, fetchMeta } from "../../api/client";
 import type { AnalyzeResponse, Meta } from "../../api/types";
 import { FALLBACK_META, FALLBACK_SAMPLES, FALLBACK_UI } from "../../config/fallback";
+import { highlightItems } from "../../lib/highlights";
 import {
   ocrLanguageFor,
   ocrPages,
@@ -31,14 +32,24 @@ export function useAnalysis() {
   const [coverage, setCoverage] = useState<Coverage | null>(null);
   const [sample, setSample] = useState<string | null>(null);
   const [targetLanguage, setTargetLanguage] = useState("English");
+  const [profileId, setProfileId] = useState<string | null>(null); // null = backend default
+  const [consent, setConsent] = useState(false);
   const abortRef = useRef<AbortController | null>(null);
   const pagesRef = useRef(pages);
   pagesRef.current = pages;
 
-  // The active domain pack configures wording, samples and OCR language.
-  const domain = meta.profiles.find((p) => p.id === meta.default_profile);
+  // The active domain pack configures wording, samples, languages, privacy and OCR language.
+  const activeProfile = profileId ?? meta.default_profile;
+  const domain = meta.profiles.find((p) => p.id === activeProfile);
   const ui = domain?.ui ?? FALLBACK_UI;
   const samples = domain?.samples ?? FALLBACK_SAMPLES;
+  const languages = domain?.languages?.length ? domain.languages : meta.languages;
+  const needsConsent = domain?.privacy.requires_consent ?? false;
+
+  // Keep the target language valid for the active domain (e.g. "Einfache Sprache" for medical).
+  useEffect(() => {
+    if (languages.length && !languages.includes(targetLanguage)) setTargetLanguage(languages[0]);
+  }, [languages, targetLanguage]);
 
   useEffect(() => {
     fetchMeta()
@@ -104,6 +115,10 @@ export function useAnalysis() {
   const analyze = useCallback(async () => {
     const current = pagesRef.current;
     if (!current.length) return;
+    if (needsConsent && !consent) {
+      setError("Please confirm the privacy consent first.");
+      return;
+    }
     setError(null);
     setStatus("analyzing");
     setVerifications(null);
@@ -124,15 +139,16 @@ export function useAnalysis() {
       const blobs = await fitToBudget(current, meta.max_total_upload_bytes);
       const res = await analyzeDocument(blobs, {
         targetLanguage,
-        profile: meta.default_profile,
+        profile: activeProfile,
         sample: sample ?? undefined,
+        consent,
         signal: abortRef.current.signal,
       });
       setResponse(res);
       setStatus("done");
       const words = await ocr;
       if (words) {
-        setVerifications(verifyItems(res.result.key_items, words));
+        setVerifications(verifyItems(highlightItems(res.result), words));
         setCoverage(textCoverage(words, res.result.blocks));
         setOcrState("done");
       } else {
@@ -143,7 +159,7 @@ export function useAnalysis() {
       setError(e instanceof Error ? e.message : "Something went wrong.");
       setStatus("idle");
     }
-  }, [meta, domain, targetLanguage, sample]);
+  }, [meta, domain, activeProfile, targetLanguage, sample, consent, needsConsent]);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
@@ -157,8 +173,24 @@ export function useAnalysis() {
     setStatus("idle");
   }, []);
 
+  const switchProfile = useCallback(
+    (id: string) => {
+      reset();
+      setConsent(false); // consent is per use case
+      setProfileId(id);
+    },
+    [reset],
+  );
+
   return {
     meta,
+    domain,
+    activeProfile,
+    switchProfile,
+    languages,
+    needsConsent,
+    consent,
+    setConsent,
     ui,
     samples,
     pages,

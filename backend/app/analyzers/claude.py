@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from ..core.config import Settings
 from ..schemas.analysis import AnalysisResult
-from .base import AnalysisRequest, AnalyzerError
+from .base import AnalysisRequest, AnalyzerError, ProcessingInfo
 from .prompts import build_system_prompt
 
 log = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ _SCHEMA = anthropic.transform_schema(AnalysisResult)
 
 class ClaudeAnalyzer:
     name = "claude"
+    processing = ProcessingInfo(provider="Anthropic (Claude API)", region="USA", eu=False)
 
     def __init__(self, settings: Settings):
         self._model = settings.claude_model

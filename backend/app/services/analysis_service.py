@@ -27,6 +27,10 @@ class AnalysisService:
     def analyzer_name(self) -> str:
         return self._analyzer.name
 
+    @property
+    def processing(self):
+        return self._analyzer.processing
+
     def domain(self, domain_id: str | None) -> Domain:
         try:
             return get_domain(domain_id or self._settings.default_profile)
@@ -39,9 +43,17 @@ class AnalysisService:
         profile_id: str | None,
         target_language: str,
         sample: str | None = None,
+        consent: bool = False,
     ) -> AnalyzeResponse:
         pages = validate_uploads(files, self._settings)
         domain = self.domain(profile_id)
+        # GDPR Art. 9(2)(a): health data only with explicit consent.
+        if domain.privacy.requires_consent and not consent:
+            raise AppError(
+                "Please confirm the privacy consent before uploading this document. "
+                "It contains health data, which may only be processed with your explicit consent.",
+                428,
+            )
 
         with timed(f"analyzer:{self._analyzer.name}"):
             result = await self._analyzer.analyze(

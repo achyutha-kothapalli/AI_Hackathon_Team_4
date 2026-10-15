@@ -175,7 +175,10 @@ export function textCoverage(ocr: OcrWord[][], blocks: TextBlock[]): Coverage | 
   return { ratio: hit / words.length, missing: missing.slice(0, 8) };
 }
 
-export function verifyItems(items: KeyItem[], ocr: OcrWord[][]): Record<string, Verification> {
+export function verifyItems(
+  items: Pick<KeyItem, "id" | "page" | "bbox" | "source_quote">[],
+  ocr: OcrWord[][],
+): Record<string, Verification> {
   const out: Record<string, Verification> = {};
   for (const item of items) {
     const match = locateQuote(item.source_quote, ocr[item.page] ?? [], item.bbox);

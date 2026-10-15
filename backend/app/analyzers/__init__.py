@@ -1,5 +1,5 @@
 from ..core.config import Settings
-from .base import AnalysisRequest, Analyzer, AnalyzerError, PageImage
+from .base import AnalysisRequest, Analyzer, AnalyzerError, PageImage, ProcessingInfo
 
 
 def create_analyzer(settings: Settings) -> Analyzer:
@@ -19,4 +19,11 @@ def create_analyzer(settings: Settings) -> Analyzer:
     raise ValueError(f"Unknown ANALYZER '{settings.analyzer}'")
 
 
-__all__ = ["AnalysisRequest", "Analyzer", "AnalyzerError", "PageImage", "create_analyzer"]
+__all__ = [
+    "AnalysisRequest",
+    "Analyzer",
+    "AnalyzerError",
+    "PageImage",
+    "ProcessingInfo",
+    "create_analyzer",
+]
