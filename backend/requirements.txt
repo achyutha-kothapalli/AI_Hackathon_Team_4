@@ -1,4 +1,8 @@
-fastapi>=0.115
-anthropic>=0.75
-python-multipart>=0.0.20
-pydantic>=2.9
+# Runtime dependencies (installed by Vercel). Pinned to the versions the tests run with.
+# Keep in sync with ../requirements.txt (a test enforces this).
+fastapi==0.143.0
+anthropic==1.13.0
+openai==3.29.0
+python-multipart==0.0.32
+pydantic==2.14.1
+networkx==3.7

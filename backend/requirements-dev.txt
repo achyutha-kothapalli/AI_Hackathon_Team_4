@@ -1,6 +1,7 @@
+# Local development, tests, linting and sample generation.
 -r requirements.txt
-uvicorn[standard]>=0.32
-pytest>=8
-httpx>=0.27
-pillow>=11
-python-dotenv>=1.0
+uvicorn[standard]==0.54.0
+python-dotenv==1.2.4
+pytest==9.1.1
+ruff==0.17.0
+pillow==12.3.0

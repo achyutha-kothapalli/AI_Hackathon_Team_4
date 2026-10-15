@@ -1,0 +1,1341 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "BriefVerstehen API",
+    "version": "0.2.0"
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "summary": "Health",
+        "operationId": "health_api_health_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Health Api Health Get"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/meta": {
+      "get": {
+        "summary": "Meta",
+        "description": "Everything the UI needs to configure itself.",
+        "operationId": "meta_api_meta_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MetaResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/knowledge/{profile_id}": {
+      "get": {
+        "summary": "Knowledge",
+        "description": "The knowledge graph (ontology + rules) behind a domain, as node-link JSON.",
+        "operationId": "knowledge_api_knowledge__profile_id__get",
+        "parameters": [
+          {
+            "name": "profile_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Profile Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Knowledge Api Knowledge  Profile Id  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/analyze": {
+      "post": {
+        "summary": "Analyze",
+        "operationId": "analyze_api_analyze_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_analyze_api_analyze_post"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyzeResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AnalysisResult": {
+        "properties": {
+          "document_type": {
+            "type": "string",
+            "title": "Document Type",
+            "description": "e.g. 'Fine notice (Bußgeldbescheid)'."
+          },
+          "document_class": {
+            "type": "string",
+            "title": "Document Class",
+            "description": "One id from the document class list in the instructions, or 'unknown'."
+          },
+          "image_quality": {
+            "$ref": "#/components/schemas/ImageQuality"
+          },
+          "sender": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sender"
+          },
+          "source_language": {
+            "type": "string",
+            "title": "Source Language"
+          },
+          "target_language": {
+            "type": "string",
+            "title": "Target Language"
+          },
+          "summary": {
+            "type": "string",
+            "title": "Summary",
+            "description": "Plain-language explanation, 2-4 sentences."
+          },
+          "action_steps": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Action Steps",
+            "description": "What the reader should do, in order."
+          },
+          "key_items": {
+            "items": {
+              "$ref": "#/components/schemas/KeyItem"
+            },
+            "type": "array",
+            "title": "Key Items"
+          },
+          "medications": {
+            "items": {
+              "$ref": "#/components/schemas/Medication"
+            },
+            "type": "array",
+            "title": "Medications",
+            "description": "Every medicine mentioned with how to take it; empty list if there are none."
+          },
+          "blocks": {
+            "items": {
+              "$ref": "#/components/schemas/TextBlock"
+            },
+            "type": "array",
+            "title": "Blocks"
+          },
+          "confidence_note": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Confidence Note",
+            "description": "Warnings about unreadable parts or uncertain facts, else null."
+          },
+          "suspicious_instructions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Suspicious Instructions",
+            "description": "Verbatim text in the document that addresses an AI or tries to change how it is processed, else null."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "document_type",
+          "document_class",
+          "image_quality",
+          "sender",
+          "source_language",
+          "target_language",
+          "summary",
+          "action_steps",
+          "key_items",
+          "medications",
+          "blocks",
+          "confidence_note",
+          "suspicious_instructions"
+        ],
+        "title": "AnalysisResult"
+      },
+      "AnalyzeResponse": {
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/AnalysisResult"
+          },
+          "checks": {
+            "$ref": "#/components/schemas/HarnessReport"
+          },
+          "analyzer": {
+            "type": "string",
+            "title": "Analyzer"
+          },
+          "profile": {
+            "type": "string",
+            "title": "Profile"
+          },
+          "page_count": {
+            "type": "integer",
+            "title": "Page Count"
+          }
+        },
+        "type": "object",
+        "required": [
+          "result",
+          "checks",
+          "analyzer",
+          "profile",
+          "page_count"
+        ],
+        "title": "AnalyzeResponse",
+        "description": "POST /api/analyze"
+      },
+      "BBox": {
+        "properties": {
+          "x0": {
+            "type": "integer",
+            "title": "X0"
+          },
+          "y0": {
+            "type": "integer",
+            "title": "Y0"
+          },
+          "x1": {
+            "type": "integer",
+            "title": "X1"
+          },
+          "y1": {
+            "type": "integer",
+            "title": "Y1"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "x0",
+          "y0",
+          "x1",
+          "y1"
+        ],
+        "title": "BBox",
+        "description": "Region on a page, in integer units of 1/1000 of the page width/height.\n\n(0, 0) is the top-left corner; (1000, 1000) is the bottom-right corner."
+      },
+      "Body_analyze_api_analyze_post": {
+        "properties": {
+          "files": {
+            "items": {
+              "type": "string",
+              "contentMediaType": "application/octet-stream"
+            },
+            "type": "array",
+            "title": "Files",
+            "description": "One image per page, in order."
+          },
+          "profile": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Profile",
+            "description": "Domain id, e.g. german_letter."
+          },
+          "target_language": {
+            "type": "string",
+            "title": "Target Language",
+            "default": "English"
+          },
+          "sample": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sample",
+            "description": "Bundled sample id (demo mode only)."
+          },
+          "consent": {
+            "type": "boolean",
+            "title": "Consent",
+            "description": "Explicit consent (required for health documents).",
+            "default": false
+          }
+        },
+        "type": "object",
+        "required": [
+          "files"
+        ],
+        "title": "Body_analyze_api_analyze_post"
+      },
+      "CheckSummary": {
+        "properties": {
+          "total_items": {
+            "type": "integer",
+            "title": "Total Items"
+          },
+          "grounded_items": {
+            "type": "integer",
+            "title": "Grounded Items"
+          },
+          "critical": {
+            "type": "integer",
+            "title": "Critical"
+          },
+          "warnings": {
+            "type": "integer",
+            "title": "Warnings"
+          },
+          "infos": {
+            "type": "integer",
+            "title": "Infos"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_items",
+          "grounded_items",
+          "critical",
+          "warnings",
+          "infos"
+        ],
+        "title": "CheckSummary"
+      },
+      "Confidence": {
+        "type": "string",
+        "enum": [
+          "high",
+          "medium",
+          "low"
+        ],
+        "title": "Confidence"
+      },
+      "DocumentClassInfo": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "lineage": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Lineage",
+            "description": "Ontology ancestors, most specific first."
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "description": "'model', 'keywords' or 'unknown'."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "lineage",
+          "source"
+        ],
+        "title": "DocumentClassInfo"
+      },
+      "DomainUIInfo": {
+        "properties": {
+          "headline": {
+            "type": "string",
+            "title": "Headline"
+          },
+          "intro": {
+            "type": "string",
+            "title": "Intro"
+          },
+          "upload_title": {
+            "type": "string",
+            "title": "Upload Title"
+          },
+          "upload_hint": {
+            "type": "string",
+            "title": "Upload Hint"
+          },
+          "disclaimer": {
+            "type": "string",
+            "title": "Disclaimer"
+          },
+          "progress": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Progress"
+          }
+        },
+        "type": "object",
+        "required": [
+          "headline",
+          "intro",
+          "upload_title",
+          "upload_hint",
+          "disclaimer",
+          "progress"
+        ],
+        "title": "DomainUIInfo"
+      },
+      "Escalation": {
+        "properties": {
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "resources": {
+            "items": {
+              "$ref": "#/components/schemas/Resource"
+            },
+            "type": "array",
+            "title": "Resources"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reason",
+          "resources"
+        ],
+        "title": "Escalation"
+      },
+      "Finding": {
+        "properties": {
+          "rule_id": {
+            "type": "string",
+            "title": "Rule Id",
+            "description": "Id of the rule (knowledge graph) or built-in check that fired."
+          },
+          "category": {
+            "$ref": "#/components/schemas/FindingCategory"
+          },
+          "severity": {
+            "$ref": "#/components/schemas/Severity"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "item_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Item Ids",
+            "default": []
+          },
+          "evidence": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence",
+            "description": "Text from the letter that triggered the finding."
+          },
+          "legal_basis": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Legal Basis"
+          }
+        },
+        "type": "object",
+        "required": [
+          "rule_id",
+          "category",
+          "severity",
+          "message"
+        ],
+        "title": "Finding"
+      },
+      "FindingCategory": {
+        "type": "string",
+        "enum": [
+          "grounding",
+          "completeness",
+          "legal",
+          "scam",
+          "injection",
+          "quality",
+          "escalation",
+          "advice",
+          "readability",
+          "safety"
+        ],
+        "title": "FindingCategory"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "HarnessReport": {
+        "properties": {
+          "document_class": {
+            "$ref": "#/components/schemas/DocumentClassInfo"
+          },
+          "findings": {
+            "items": {
+              "$ref": "#/components/schemas/Finding"
+            },
+            "type": "array",
+            "title": "Findings"
+          },
+          "item_checks": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ItemCheck"
+            },
+            "type": "object",
+            "title": "Item Checks"
+          },
+          "escalation": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Escalation"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "scam_suspected": {
+            "type": "boolean",
+            "title": "Scam Suspected"
+          },
+          "readability": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Readability"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "summary": {
+            "$ref": "#/components/schemas/CheckSummary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "document_class",
+          "findings",
+          "item_checks",
+          "escalation",
+          "scam_suspected",
+          "summary"
+        ],
+        "title": "HarnessReport"
+      },
+      "ImageQuality": {
+        "type": "string",
+        "enum": [
+          "good",
+          "poor",
+          "unreadable"
+        ],
+        "title": "ImageQuality"
+      },
+      "Importance": {
+        "type": "string",
+        "enum": [
+          "high",
+          "medium",
+          "low"
+        ],
+        "title": "Importance"
+      },
+      "ItemCheck": {
+        "properties": {
+          "item_id": {
+            "type": "string",
+            "title": "Item Id"
+          },
+          "grounded": {
+            "type": "boolean",
+            "title": "Grounded",
+            "description": "Every number/date/amount of the item was found in its quote and the quote in the letter text."
+          },
+          "issues": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Issues",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "item_id",
+          "grounded"
+        ],
+        "title": "ItemCheck"
+      },
+      "KeyItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/KeyItemKind"
+          },
+          "importance": {
+            "$ref": "#/components/schemas/Importance"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label",
+            "description": "Short title in the target language, e.g. 'Payment deadline'."
+          },
+          "value": {
+            "type": "string",
+            "title": "Value",
+            "description": "The fact itself, with numbers exactly as printed, e.g. '14.11.2026' or '35,00 EUR'."
+          },
+          "explanation": {
+            "type": "string",
+            "title": "Explanation",
+            "description": "What it means for the reader, in the target language."
+          },
+          "date": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Date",
+            "description": "ISO date YYYY-MM-DD if the item is or implies a date."
+          },
+          "amount": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Amount"
+          },
+          "currency": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Currency"
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "bbox": {
+            "$ref": "#/components/schemas/BBox"
+          },
+          "source_quote": {
+            "type": "string",
+            "title": "Source Quote",
+            "description": "Exact original-language text this item was read from."
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence",
+            "description": "How sure the reading is; 'low' if partly illegible or ambiguous."
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "kind",
+          "importance",
+          "label",
+          "value",
+          "explanation",
+          "date",
+          "amount",
+          "currency",
+          "page",
+          "bbox",
+          "source_quote",
+          "confidence"
+        ],
+        "title": "KeyItem",
+        "description": "A fact the reader must notice: deadline, amount due, file number, ..."
+      },
+      "KeyItemKind": {
+        "type": "string",
+        "enum": [
+          "deadline",
+          "payment",
+          "appointment",
+          "reference",
+          "contact",
+          "consequence",
+          "document_required",
+          "medication",
+          "diagnosis",
+          "warning_sign",
+          "instruction",
+          "other"
+        ],
+        "title": "KeyItemKind"
+      },
+      "Medication": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique id, e.g. 'm0'."
+          },
+          "name": {
+            "type": "string",
+            "title": "Name",
+            "description": "Trade name or active ingredient exactly as printed."
+          },
+          "active_ingredient": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Active Ingredient"
+          },
+          "strength": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Strength",
+            "description": "Strength exactly as printed, e.g. '5 mg', else null."
+          },
+          "form": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Form",
+            "description": "Dosage form, e.g. 'Tablette', else null."
+          },
+          "morning": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Morning",
+            "description": "Dose in the morning column exactly as printed, e.g. '1', '½', '0'."
+          },
+          "noon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Noon"
+          },
+          "evening": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evening"
+          },
+          "night": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Night"
+          },
+          "schedule_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Schedule Text",
+            "description": "Intake rule as printed if it is not a daily column dose, e.g. '1x wöchentlich montags'."
+          },
+          "status": {
+            "$ref": "#/components/schemas/MedicationStatus"
+          },
+          "purpose": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Purpose",
+            "description": "What it is for, in plain words in the target language."
+          },
+          "instructions": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Instructions",
+            "description": "How to take it (with food, before bed, ...) in plain words in the target language."
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page"
+          },
+          "bbox": {
+            "$ref": "#/components/schemas/BBox"
+          },
+          "source_quote": {
+            "type": "string",
+            "title": "Source Quote",
+            "description": "Exact original text of this medication's row or sentence."
+          },
+          "confidence": {
+            "$ref": "#/components/schemas/Confidence"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "active_ingredient",
+          "strength",
+          "form",
+          "morning",
+          "noon",
+          "evening",
+          "night",
+          "schedule_text",
+          "status",
+          "purpose",
+          "instructions",
+          "page",
+          "bbox",
+          "source_quote",
+          "confidence"
+        ],
+        "title": "Medication",
+        "description": "One row of a medication plan, as printed. Dose columns follow the German\nbundeseinheitlicher Medikationsplan: morgens / mittags / abends / zur Nacht."
+      },
+      "MedicationStatus": {
+        "type": "string",
+        "enum": [
+          "new",
+          "changed",
+          "continued",
+          "stopped",
+          "unknown"
+        ],
+        "title": "MedicationStatus"
+      },
+      "MetaResponse": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "title": "Version"
+          },
+          "analyzer": {
+            "type": "string",
+            "title": "Analyzer"
+          },
+          "processing": {
+            "$ref": "#/components/schemas/ProcessingInfoOut"
+          },
+          "default_profile": {
+            "type": "string",
+            "title": "Default Profile"
+          },
+          "profiles": {
+            "items": {
+              "$ref": "#/components/schemas/ProfileInfo"
+            },
+            "type": "array",
+            "title": "Profiles"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Languages"
+          },
+          "max_pages": {
+            "type": "integer",
+            "title": "Max Pages"
+          },
+          "max_total_upload_bytes": {
+            "type": "integer",
+            "title": "Max Total Upload Bytes"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "analyzer",
+          "processing",
+          "default_profile",
+          "profiles",
+          "languages",
+          "max_pages",
+          "max_total_upload_bytes"
+        ],
+        "title": "MetaResponse",
+        "description": "GET /api/meta: everything the UI needs to configure itself."
+      },
+      "PrivacyInfo": {
+        "properties": {
+          "data_category": {
+            "type": "string",
+            "title": "Data Category"
+          },
+          "requires_consent": {
+            "type": "boolean",
+            "title": "Requires Consent"
+          },
+          "consent_text": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Consent Text"
+          },
+          "recommend_eu_processing": {
+            "type": "boolean",
+            "title": "Recommend Eu Processing"
+          },
+          "redact_personal_data": {
+            "type": "boolean",
+            "title": "Redact Personal Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "data_category",
+          "requires_consent",
+          "consent_text",
+          "recommend_eu_processing",
+          "redact_personal_data"
+        ],
+        "title": "PrivacyInfo"
+      },
+      "ProcessingInfoOut": {
+        "properties": {
+          "provider": {
+            "type": "string",
+            "title": "Provider"
+          },
+          "region": {
+            "type": "string",
+            "title": "Region"
+          },
+          "eu": {
+            "type": "boolean",
+            "title": "Eu"
+          }
+        },
+        "type": "object",
+        "required": [
+          "provider",
+          "region",
+          "eu"
+        ],
+        "title": "ProcessingInfoOut",
+        "description": "Who processes uploads and where (GDPR transparency)."
+      },
+      "ProfileInfo": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "source_language": {
+            "type": "string",
+            "title": "Source Language"
+          },
+          "ocr_language": {
+            "type": "string",
+            "title": "Ocr Language"
+          },
+          "ui": {
+            "$ref": "#/components/schemas/DomainUIInfo"
+          },
+          "samples": {
+            "items": {
+              "$ref": "#/components/schemas/SampleInfo"
+            },
+            "type": "array",
+            "title": "Samples"
+          },
+          "privacy": {
+            "$ref": "#/components/schemas/PrivacyInfo"
+          },
+          "languages": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Languages"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "source_language",
+          "ocr_language",
+          "ui",
+          "samples",
+          "privacy",
+          "languages"
+        ],
+        "title": "ProfileInfo",
+        "description": "A domain pack, as the UI sees it (called \"profile\" in the API)."
+      },
+      "Readability": {
+        "properties": {
+          "score": {
+            "type": "number",
+            "title": "Score",
+            "description": "0-100, higher is easier."
+          },
+          "level": {
+            "type": "string",
+            "title": "Level",
+            "description": "'very easy', 'easy', 'fairly easy', 'standard', 'difficult' or 'very difficult'."
+          },
+          "target": {
+            "type": "number",
+            "title": "Target",
+            "description": "Minimum score the domain aims for."
+          },
+          "avg_sentence_words": {
+            "type": "number",
+            "title": "Avg Sentence Words"
+          },
+          "language": {
+            "type": "string",
+            "title": "Language"
+          }
+        },
+        "type": "object",
+        "required": [
+          "score",
+          "level",
+          "target",
+          "avg_sentence_words",
+          "language"
+        ],
+        "title": "Readability",
+        "description": "How easy the AI's explanation is to read (Flesch Reading Ease; Amstad for German)."
+      },
+      "Resource": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Url"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "description"
+        ],
+        "title": "Resource"
+      },
+      "SampleInfo": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "label": {
+            "type": "string",
+            "title": "Label"
+          },
+          "image": {
+            "type": "string",
+            "title": "Image"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "label",
+          "image"
+        ],
+        "title": "SampleInfo"
+      },
+      "Severity": {
+        "type": "string",
+        "enum": [
+          "info",
+          "warning",
+          "critical"
+        ],
+        "title": "Severity"
+      },
+      "TextBlock": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id",
+            "description": "Unique id, e.g. 'p1-b3' (page 1, block 3)."
+          },
+          "page": {
+            "type": "integer",
+            "title": "Page",
+            "description": "0-based page index."
+          },
+          "bbox": {
+            "$ref": "#/components/schemas/BBox"
+          },
+          "original": {
+            "type": "string",
+            "title": "Original",
+            "description": "Original text exactly as printed."
+          },
+          "translation": {
+            "type": "string",
+            "title": "Translation"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "page",
+          "bbox",
+          "original",
+          "translation"
+        ],
+        "title": "TextBlock",
+        "description": "A paragraph or line group of the original document and its translation."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

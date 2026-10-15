@@ -1,5 +1,5 @@
-from ..config import Settings
-from .base import AnalysisRequest, Analyzer, AnalyzerError, PageImage
+from ..core.config import Settings
+from .base import AnalysisRequest, Analyzer, AnalyzerError, PageImage, ProcessingInfo
 
 
 def create_analyzer(settings: Settings) -> Analyzer:
@@ -12,7 +12,18 @@ def create_analyzer(settings: Settings) -> Analyzer:
         from .claude import ClaudeAnalyzer
 
         return ClaudeAnalyzer(settings)
+    if settings.analyzer == "trustedtokens":
+        from .trustedtokens import TrustedTokensAnalyzer
+
+        return TrustedTokensAnalyzer(settings)
     raise ValueError(f"Unknown ANALYZER '{settings.analyzer}'")
 
 
-__all__ = ["AnalysisRequest", "Analyzer", "AnalyzerError", "PageImage", "create_analyzer"]
+__all__ = [
+    "AnalysisRequest",
+    "Analyzer",
+    "AnalyzerError",
+    "PageImage",
+    "ProcessingInfo",
+    "create_analyzer",
+]

@@ -1,0 +1,115 @@
+{
+  "id": "medikationsplan",
+  "domain": "medical_document",
+  "description": "Bundeseinheitlicher Medikationsplan (table) with weekly methotrexate and an as-needed medicine. Methotrexate safety note expected.",
+  "expected_class": "medication_plan",
+  "transcript": "Medikationsplan\nfür: Erika Mustermann   geb. am: 12.03.1948\nausgedruckt von: Hausarztpraxis Dr. med. Anna Schmidt, Lindenstraße 8, 12345 Musterstadt, Tel.: 0123 98765\nausgedruckt am: 20.10.2026\nWirkstoff  Stärke  Form  Mo  Mi  Ab  zN  Hinweise  Grund\nRamipril  5 mg  Tabl.  1  0  1  0  Blutdruck\nAmlodipin  5 mg  Tabl.  1  0  0  0  Blutdruck\nMetformin  1000 mg  Tabl.  ½  0  ½  0  zum Essen  Diabetes\nMethotrexat  15 mg  Tabl.  1x wöchentlich montags  Rheuma\nFolsäure  5 mg  Tabl.  1x wöchentlich dienstags  zu Methotrexat\nPantoprazol  20 mg  Tabl.  1  0  0  0  vor dem Frühstück  Magenschutz\nBedarfsmedikation\nParacetamol  500 mg  Tabl.  bei Schmerzen, max. 4x täglich  Schmerzen\nBitte bringen Sie diesen Plan zu jedem Arztbesuch und in die Apotheke mit.",
+  "expected_items": [
+    {
+      "kind": "instruction",
+      "value": "zu jedem Arztbesuch und in die Apotheke",
+      "quote": "Bitte bringen Sie diesen Plan zu jedem Arztbesuch und in die Apotheke mit."
+    },
+    {
+      "kind": "contact",
+      "value": "Tel.: 0123 98765",
+      "quote": "Tel.: 0123 98765"
+    }
+  ],
+  "expected_medications": [
+    {
+      "name": "Ramipril",
+      "strength": "5 mg",
+      "doses": [
+        "1",
+        "0",
+        "1",
+        "0"
+      ],
+      "schedule_text": null,
+      "status": "continued",
+      "quote": "Ramipril  5 mg  Tabl.  1  0  1  0  Blutdruck"
+    },
+    {
+      "name": "Amlodipin",
+      "strength": "5 mg",
+      "doses": [
+        "1",
+        "0",
+        "0",
+        "0"
+      ],
+      "schedule_text": null,
+      "status": "continued",
+      "quote": "Amlodipin  5 mg  Tabl.  1  0  0  0  Blutdruck"
+    },
+    {
+      "name": "Metformin",
+      "strength": "1000 mg",
+      "doses": [
+        "½",
+        "0",
+        "½",
+        "0"
+      ],
+      "schedule_text": null,
+      "status": "continued",
+      "quote": "Metformin  1000 mg  Tabl.  ½  0  ½  0  zum Essen  Diabetes"
+    },
+    {
+      "name": "Methotrexat",
+      "strength": "15 mg",
+      "doses": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "schedule_text": "1x wöchentlich montags",
+      "status": "continued",
+      "quote": "Methotrexat  15 mg  Tabl.  1x wöchentlich montags  Rheuma"
+    },
+    {
+      "name": "Folsäure",
+      "strength": "5 mg",
+      "doses": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "schedule_text": "1x wöchentlich dienstags",
+      "status": "continued",
+      "quote": "Folsäure  5 mg  Tabl.  1x wöchentlich dienstags  zu Methotrexat"
+    },
+    {
+      "name": "Pantoprazol",
+      "strength": "20 mg",
+      "doses": [
+        "1",
+        "0",
+        "0",
+        "0"
+      ],
+      "schedule_text": null,
+      "status": "continued",
+      "quote": "Pantoprazol  20 mg  Tabl.  1  0  0  0  vor dem Frühstück  Magenschutz"
+    },
+    {
+      "name": "Paracetamol",
+      "strength": "500 mg",
+      "doses": [
+        null,
+        null,
+        null,
+        null
+      ],
+      "schedule_text": "bei Schmerzen, max. 4x täglich",
+      "status": "continued",
+      "quote": "Paracetamol  500 mg  Tabl.  bei Schmerzen, max. 4x täglich  Schmerzen"
+    }
+  ],
+  "expected_findings": [
+    "safety"
+  ]
+}

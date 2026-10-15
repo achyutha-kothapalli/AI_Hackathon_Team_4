@@ -8,7 +8,7 @@
     "api/index.py": {
       "maxDuration": 120,
       "includeFiles": "backend/app/**",
-      "excludeFiles": "{frontend/**,backend/tests/**,backend/scripts/**,backend/app/fixtures/sample_letter.png}"
+      "excludeFiles": "{frontend/**,backend/tests/**,backend/scripts/**,backend/evaluation/**}"
     }
   },
   "rewrites": [{ "source": "/api/(.*)", "destination": "/api/index" }]

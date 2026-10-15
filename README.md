@@ -1,38 +1,65 @@
-# Letter Lens
+# BriefVerstehen
 
-Photograph a German letter → get a translation, a plain-language summary, the
-deadlines, amounts and reference numbers that matter, **and see exactly where
-each one is printed on your photo**. Deadlines export to your calendar.
+[![CI](https://github.com/achyutha-kothapalli/AI_Hackathon_Team_4/actions/workflows/ci.yml/badge.svg)](https://github.com/achyutha-kothapalli/AI_Hackathon_Team_4/actions/workflows/ci.yml)
+![Python 3.12+](https://img.shields.io/badge/python-3.12%2B-blue)
+![Harness benchmark 154/154](https://img.shields.io/badge/harness%20benchmark-154%2F154%20faults%20caught-brightgreen)
 
-- **backend/** — FastAPI (Python). Calls Claude and returns structured JSON.
-- **frontend/** — React + Vite (TypeScript). Upload, overlay viewer, insights.
+**Hackathon problem:** make medical information (diagnoses, discharge notes,
+medication plans) understandable and actionable for people with low health
+literacy, visual impairment or poor eyesight, in line with the DSGVO.
 
-The two folders share nothing but the HTTP API. Import the repo into Vercel
-as-is and both deploy together; or deploy them as two separate projects.
-**How it works, end to end: [HOW_IT_WORKS.md](HOW_IT_WORKS.md).**
+Photograph a discharge letter or medication plan → get a **plain-language
+explanation** (also in *Einfache Sprache*), a **daily medicine plan**, warning
+signs and next steps, **read aloud** if you like, with every fact and dose
+**verified against the document** and highlighted on your photo. Health data is
+only processed with **explicit consent**, and personal details are **blacked out
+on the device before upload**. The original use case (German official
+letters) remains available as a second domain pack.
+
+- **backend/** — FastAPI (Python). Calls Claude or TrustedTokens (EU-hosted models) and returns structured JSON.
+- **frontend/** — React + Vite (TypeScript). Upload, overlay viewer, insights, safety checks.
+- **Accuracy & safety harness** — every AI answer is checked in code against a
+  networkx knowledge graph (JSON ontology + rules): nothing invented, nothing
+  lost, no medical advice beyond the document, readability, scam and
+  prompt-injection safeguards. Fault-injection benchmark: 154/154 corruptions
+  caught, 0 false alarms. See [HOW_IT_WORKS.md section 10](HOW_IT_WORKS.md#10-accuracy--safety-harness).
+- **Domain packs** — everything specific to a use case (prompt, wording, samples,
+  ontology, rules) lives in one folder, so a new problem is a new folder, not a rewrite.
+
+| Document | What it covers |
+|---|---|
+| [HOW_IT_WORKS.md](HOW_IT_WORKS.md) | Architecture (C4 diagrams, file map), request flow, contracts, harness, deployment |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Workflow, quality gates, recipes: new domain, rule, check, AI provider |
+| [docs/adr/](docs/adr/) | Architecture decision records: why it is built this way |
+| [PRIVACY.md](PRIVACY.md) | Data flow: what is sent where, and what is kept (nothing); redaction before upload |
+| [OFFICIAL_SOURCES.md](OFFICIAL_SOURCES.md) | Official German and EU sources behind the ontology and rules |
+| [docs/BACKEND_API.md](docs/BACKEND_API.md) | Backend API handoff for frontend work in parallel (+ `docs/openapi.json`) |
+| [CLAUDE.md](CLAUDE.md) | Conventions and commands for Claude Code |
 
 ```
 Hackathon_WHU/
-├── backend/            Python only — run, test and deploy from here
-│   ├── app/            FastAPI application (routes, services, analyzers, profiles, schemas)
-│   ├── api/index.py    Vercel entry point
-│   ├── tests/
-│   ├── scripts/        make_sample.py (regenerates the sample letter + fixture)
-│   ├── requirements.txt, requirements-dev.txt, pytest.ini
-│   ├── vercel.json, .vercelignore   Vercel project config (Root Directory = this folder)
-│   └── .env.example
-├── frontend/           Node only — run, build and deploy from here
-│   ├── src/            api/, features/{upload,ocr,viewer,insights,calendar,analysis}, lib/
-│   ├── public/sample/  sample letter for "Try a sample"
-│   ├── package.json, vite.config.ts, tsconfig.json
-│   ├── vercel.json, .vercelignore   Vercel project config (Root Directory = this folder)
-│   └── .env.example
-├── api/index.py        ┐ one-project Vercel deploy: thin shim that imports backend/app,
-├── vercel.json         │ builds frontend/ and routes /api/* to the backend
-├── requirements.txt    │ (copy of backend/requirements.txt — a test keeps them in sync)
-├── .vercelignore       ┘
-├── HOW_IT_WORKS.md
-└── README.md
+├── backend/                 Python 3.12 · FastAPI
+│   ├── app/
+│   │   ├── core/            config, errors, logging + request ids
+│   │   ├── api/             HTTP routes, typed responses
+│   │   ├── services/        orchestration: validate → analyze → sanitise → harness
+│   │   ├── analyzers/       AI providers: Claude, TrustedTokens, mock (demo mode)
+│   │   ├── domains/         ★ domain packs: medical_document/ (default), german_letter/
+│   │   ├── knowledge/       knowledge-graph engine (networkx)
+│   │   ├── harness/         accuracy & safety check pipeline + checks/
+│   │   └── schemas/         contracts: AI output, harness report, API responses
+│   ├── tests/               51 tests, no API keys needed
+│   ├── evaluation/          fault-injection benchmark, real-model evaluation, cases/
+│   ├── scripts/             make_samples.py (sample letters with exact ground truth)
+│   ├── api/index.py         Vercel entry point (backend-only deploy)
+│   └── pyproject.toml, requirements*.txt, vercel.json, .env.example
+├── frontend/                React 19 · TypeScript · Vite
+│   ├── src/                 api/, config/, components/, features/{analysis,upload,ocr,viewer,insights,medication,safety,accessibility,calendar}, lib/
+│   └── public/sample/       sample letters for "Try a sample"
+├── docs/adr/                architecture decision records
+├── .github/workflows/ci.yml lint, tests, benchmark, frontend build
+├── api/index.py, vercel.json, requirements.txt   one-project Vercel deploy from the repo root
+└── README.md, HOW_IT_WORKS.md, CONTRIBUTING.md, PRIVACY.md, CLAUDE.md
 ```
 
 ## Run locally
@@ -58,12 +85,21 @@ npm run dev
 ```
 
 In development, Vite forwards `/api/*` to the backend on port 8000, so no
-configuration is needed. Without an API key the backend runs in **mock mode**
-and returns the analysis of the sample letter, so the frontend can be built
-without keys or credits. Click "Try a sample fine notice".
+configuration is needed. Without an API key the backend runs in **demo mode**
+and returns prepared answers for the sample letters, so the frontend can be
+built without keys or credits. Click one of the "Try a sample" buttons.
 
-**Tests:** `cd backend && .venv/Scripts/python -m pytest` (no key needed).
-**Type-check + build:** `cd frontend && npm run build`.
+## Quality gates
+
+All of these run in CI on every pull request ([CONTRIBUTING.md](CONTRIBUTING.md)):
+
+```bash
+cd backend && .venv/Scripts/python -m ruff check . && .venv/Scripts/python -m pytest && .venv/Scripts/python -m evaluation.benchmark
+```
+
+```bash
+cd frontend && npm run build
+```
 
 ## Deploy to Vercel
 
@@ -83,7 +119,7 @@ Every push to `main` redeploys; every pull request gets its own preview URL.
 1. Push the repo to GitHub.
 2. **Backend project:** Import the repo in Vercel and set **Root Directory = `backend`**.
    Add environment variables `ANTHROPIC_API_KEY` and `CORS_ORIGINS` (the frontend's
-   URL, e.g. `https://letter-lens.vercel.app`). Deploy and note its URL.
+   URL, e.g. `https://briefverstehen.vercel.app`). Deploy and note its URL.
 3. **Frontend project:** Import the same repo again with **Root Directory = `frontend`**.
    Add `VITE_API_URL` = the backend URL from step 2. Deploy.
 4. If the frontend URL changed, update `CORS_ORIGINS` on the backend and redeploy it.

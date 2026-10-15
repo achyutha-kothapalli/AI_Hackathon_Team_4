@@ -1,11 +1,17 @@
 import { useEffect, useRef } from "react";
-import type { AnalysisResult, KeyItem } from "../../api/types";
+import type { AnalysisResult, HarnessReport, ItemCheck, KeyItem } from "../../api/types";
 import { byImportance, daysUntil, formatDate, KIND_META } from "../../lib/kinds";
 import { datedItems, downloadIcs } from "../calendar/ics";
-import type { Verification } from "../ocr/verifyHighlights";
+import type { Coverage, Verification } from "../ocr/verifyHighlights";
+import { ReadAloudButton } from "../accessibility/ReadAloudButton";
+import { MedicationSchedule } from "../medication/MedicationSchedule";
+import { ChecksPanel } from "../safety/ChecksPanel";
 
 interface Props {
   result: AnalysisResult;
+  checks: HarnessReport;
+  targetLanguage: string;
+  coverage: Coverage | null;
   verifications: Record<string, Verification> | null;
   ocrState: "running" | "done" | "failed";
   activeItemId: string | null;
@@ -19,16 +25,38 @@ export function InsightsPanel(props: Props) {
   const dated = datedItems(result);
   return (
     <div className="insights">
+      <ChecksPanel
+        checks={props.checks}
+        coverage={props.coverage}
+        ocrState={props.ocrState}
+        onSelectItem={props.onSelectItem}
+      />
       <section className="card summary">
         <p className="eyebrow">{result.document_type}</p>
         {result.sender && <p className="sender">From {result.sender}</p>}
         <p className="summary-text" dir="auto">{result.summary}</p>
         {result.confidence_note && <p className="note">⚠ {result.confidence_note}</p>}
+        <ReadAloudButton
+          text={() => [result.summary, ...result.action_steps].join(" ")}
+          targetLanguage={props.targetLanguage}
+          label="Read summary and steps aloud"
+        />
       </section>
+
+      <MedicationSchedule
+        medications={result.medications}
+        checks={props.checks.item_checks}
+        targetLanguage={props.targetLanguage}
+        activeId={props.activeItemId}
+        onSelect={props.onSelectItem}
+      />
 
       {result.action_steps.length > 0 && (
         <section className="card">
-          <h2>What to do</h2>
+          <div className="card-head">
+            <h2>What to do</h2>
+            <ReadAloudButton text={() => result.action_steps.join(" ")} targetLanguage={props.targetLanguage} />
+          </div>
           <ol className="steps">
             {result.action_steps.map((s, i) => (
               <li key={i} dir="auto">{s}</li>
@@ -62,7 +90,7 @@ function VerifyBadge({ v, ocrState }: { v?: Verification; ocrState: Props["ocrSt
   );
 }
 
-function KeyItemList({ result, verifications, ocrState, activeItemId, onSelectItem }: Props) {
+function KeyItemList({ result, checks, verifications, ocrState, activeItemId, onSelectItem }: Props) {
   const items = [...result.key_items].sort(byImportance);
   const refs = useRef(new Map<string, HTMLElement>());
 
@@ -83,6 +111,7 @@ function KeyItemList({ result, verifications, ocrState, activeItemId, onSelectIt
               number={result.key_items.indexOf(item) + 1}
               result={result}
               verification={verifications?.[item.id]}
+              check={checks.item_checks[item.id]}
               ocrState={ocrState}
               active={activeItemId === item.id}
               onSelect={() => onSelectItem(item.id)}
@@ -102,6 +131,7 @@ function KeyItemCard({
   number,
   result,
   verification,
+  check,
   ocrState,
   active,
   onSelect,
@@ -111,6 +141,7 @@ function KeyItemCard({
   number: number;
   result: AnalysisResult;
   verification?: Verification;
+  check?: ItemCheck;
   ocrState: Props["ocrState"];
   active: boolean;
   onSelect: () => void;
@@ -121,7 +152,7 @@ function KeyItemCard({
   return (
     <article
       ref={cardRef}
-      className={`key-item tone-${meta.tone} ${active ? "is-active" : ""}`}
+      className={`key-item tone-${meta.tone} ${active ? "is-active" : ""} ${check && !check.grounded ? "is-unverified" : ""}`}
       onClick={onSelect}
       onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onSelect()}
       tabIndex={0}
@@ -135,6 +166,12 @@ function KeyItemCard({
         </span>
         {item.importance === "high" && <span className="badge high">Important</span>}
       </header>
+      {check && !check.grounded && (
+        <p className="unverified" role="note">
+          ⛔ Not found in the letter text — verify before acting on it.
+        </p>
+      )}
+      {item.confidence === "low" && <p className="uncertain">⚠ Hard to read — check on the letter.</p>}
       <h3 dir="auto">{item.label}</h3>
       <p className="value">{item.value}</p>
       {item.date && (

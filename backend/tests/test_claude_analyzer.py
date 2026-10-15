@@ -9,9 +9,10 @@ import pytest
 
 from app.analyzers import AnalysisRequest, AnalyzerError, PageImage
 from app.analyzers.claude import ClaudeAnalyzer
-from app.analyzers.mock import FIXTURE
-from app.config import Settings
-from app.profiles import get_profile
+from app.core.config import Settings
+from app.domains import get_domain
+
+FIXTURE = get_domain("german_letter").sample_answer("bussgeldbescheid")
 
 
 def make_analyzer(handler) -> ClaudeAnalyzer:
@@ -27,18 +28,39 @@ def make_analyzer(handler) -> ClaudeAnalyzer:
 def sse(text: str, stop_reason: str = "end_turn") -> httpx.Response:
     """A minimal streamed Messages API response containing one text block."""
     events = [
-        ("message_start", {"type": "message_start", "message": {
-            "id": "msg_test", "type": "message", "role": "assistant", "model": "claude-opus-5-5",
-            "content": [], "stop_reason": None, "stop_sequence": None,
-            "usage": {"input_tokens": 10, "output_tokens": 0}}}),
-        ("content_block_start", {"type": "content_block_start", "index": 0,
-                                 "content_block": {"type": "text", "text": ""}}),
-        ("content_block_delta", {"type": "content_block_delta", "index": 0,
-                                 "delta": {"type": "text_delta", "text": text}}),
+        (
+            "message_start",
+            {
+                "type": "message_start",
+                "message": {
+                    "id": "msg_test",
+                    "type": "message",
+                    "role": "assistant",
+                    "model": "claude-opus-5-5",
+                    "content": [],
+                    "stop_reason": None,
+                    "stop_sequence": None,
+                    "usage": {"input_tokens": 10, "output_tokens": 0},
+                },
+            },
+        ),
+        (
+            "content_block_start",
+            {"type": "content_block_start", "index": 0, "content_block": {"type": "text", "text": ""}},
+        ),
+        (
+            "content_block_delta",
+            {"type": "content_block_delta", "index": 0, "delta": {"type": "text_delta", "text": text}},
+        ),
         ("content_block_stop", {"type": "content_block_stop", "index": 0}),
-        ("message_delta", {"type": "message_delta",
-                           "delta": {"stop_reason": stop_reason, "stop_sequence": None},
-                           "usage": {"output_tokens": 10}}),
+        (
+            "message_delta",
+            {
+                "type": "message_delta",
+                "delta": {"stop_reason": stop_reason, "stop_sequence": None},
+                "usage": {"output_tokens": 10},
+            },
+        ),
         ("message_stop", {"type": "message_stop"}),
     ]
     body = "".join(f"event: {name}\ndata: {json.dumps(data)}\n\n" for name, data in events)
@@ -47,7 +69,7 @@ def sse(text: str, stop_reason: str = "end_turn") -> httpx.Response:
 
 REQUEST = AnalysisRequest(
     pages=[PageImage(data=b"\xff\xd8\xff fake", media_type="image/jpeg")] * 2,
-    profile=get_profile("german_letter"),
+    domain=get_domain("german_letter"),
     target_language="English",
 )
 
@@ -89,7 +111,9 @@ def test_truncated_output_maps_to_413():
 
 def test_rate_limit_maps_to_429():
     def handler(_):
-        return httpx.Response(429, json={"type": "error", "error": {"type": "rate_limit_error", "message": "slow"}})
+        return httpx.Response(
+            429, json={"type": "error", "error": {"type": "rate_limit_error", "message": "slow"}}
+        )
 
     with pytest.raises(AnalyzerError) as e:
         asyncio.run(make_analyzer(handler).analyze(REQUEST))

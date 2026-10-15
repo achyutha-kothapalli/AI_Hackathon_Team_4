@@ -1,0 +1,321 @@
+{
+  "$comment": "Ontology for German official letters. Classes form an is-a hierarchy (multiple parents allowed); rules attached to a class apply to all its descendants. Loaded into a networkx graph by app/knowledge/graph.py.",
+  "version": "1.0",
+  "root": "official_letter",
+  "settings": {
+    "suspicious_reason": "This letter shows signs of fraud. Do not pay or reply before verifying it.",
+    "suspicious_resources": [
+      "verbraucherzentrale",
+      "police"
+    ]
+  },
+  "classes": [
+    {
+      "id": "official_letter",
+      "label": "Official letter",
+      "parents": [],
+      "keywords": []
+    },
+    {
+      "id": "authority_letter",
+      "label": "Letter from a public authority",
+      "parents": [
+        "official_letter"
+      ],
+      "keywords": [
+        "behörde",
+        "amt",
+        "stadt",
+        "landkreis",
+        "bundesagentur",
+        "finanzamt",
+        "jobcenter"
+      ],
+      "attrs": {
+        "is_authority": true
+      }
+    },
+    {
+      "id": "administrative_decision",
+      "label": "Administrative decision (Bescheid)",
+      "parents": [
+        "authority_letter"
+      ],
+      "keywords": [
+        "bescheid",
+        "rechtsbehelfsbelehrung"
+      ]
+    },
+    {
+      "id": "bussgeldbescheid",
+      "label": "Fine notice (Bußgeldbescheid)",
+      "parents": [
+        "administrative_decision",
+        "payment_demand"
+      ],
+      "keywords": [
+        "bußgeldbescheid",
+        "bussgeldbescheid",
+        "geldbuße",
+        "owig",
+        "ordnungswidrigkeit"
+      ]
+    },
+    {
+      "id": "verwarnungsgeld",
+      "label": "Warning fine (Verwarnungsgeld)",
+      "parents": [
+        "authority_letter",
+        "payment_demand"
+      ],
+      "keywords": [
+        "verwarnungsgeld",
+        "verwarnung mit verwarnungsgeld",
+        "anhörung"
+      ]
+    },
+    {
+      "id": "steuerbescheid",
+      "label": "Tax assessment (Steuerbescheid)",
+      "parents": [
+        "administrative_decision"
+      ],
+      "keywords": [
+        "steuerbescheid",
+        "einkommensteuer",
+        "finanzamt",
+        "steuernummer"
+      ]
+    },
+    {
+      "id": "jobcenter_bescheid",
+      "label": "Jobcenter / benefits decision",
+      "parents": [
+        "administrative_decision"
+      ],
+      "keywords": [
+        "jobcenter",
+        "bürgergeld",
+        "sgb ii",
+        "leistungen zur sicherung des lebensunterhalts"
+      ]
+    },
+    {
+      "id": "rundfunkbeitrag",
+      "label": "Broadcasting fee (Rundfunkbeitrag)",
+      "parents": [
+        "authority_letter",
+        "payment_demand"
+      ],
+      "keywords": [
+        "rundfunkbeitrag",
+        "beitragsservice",
+        "ard zdf"
+      ]
+    },
+    {
+      "id": "auslaenderbehoerde",
+      "label": "Immigration office letter (Ausländerbehörde)",
+      "parents": [
+        "authority_letter"
+      ],
+      "keywords": [
+        "ausländerbehörde",
+        "aufenthaltstitel",
+        "aufenthaltserlaubnis",
+        "ausreisepflicht",
+        "duldung"
+      ],
+      "attrs": {
+        "high_stakes": true
+      }
+    },
+    {
+      "id": "payment_demand",
+      "label": "Payment demand",
+      "parents": [
+        "official_letter"
+      ],
+      "keywords": [
+        "zahlungsaufforderung",
+        "rechnung",
+        "zahlen sie",
+        "überweisen sie"
+      ]
+    },
+    {
+      "id": "mahnung",
+      "label": "Payment reminder (Mahnung)",
+      "parents": [
+        "payment_demand"
+      ],
+      "keywords": [
+        "mahnung",
+        "zahlungserinnerung",
+        "mahngebühr"
+      ]
+    },
+    {
+      "id": "inkasso",
+      "label": "Debt collection letter (Inkasso)",
+      "parents": [
+        "payment_demand"
+      ],
+      "keywords": [
+        "inkasso",
+        "forderung",
+        "gläubiger",
+        "hauptforderung"
+      ]
+    },
+    {
+      "id": "court_document",
+      "label": "Court document",
+      "parents": [
+        "official_letter"
+      ],
+      "keywords": [
+        "amtsgericht",
+        "landgericht",
+        "gericht",
+        "geschäftsnummer"
+      ],
+      "attrs": {
+        "high_stakes": true
+      }
+    },
+    {
+      "id": "mahnbescheid",
+      "label": "Court payment order (Mahnbescheid)",
+      "parents": [
+        "court_document",
+        "payment_demand"
+      ],
+      "keywords": [
+        "mahnbescheid",
+        "mahngericht",
+        "widerspruch gegen den mahnbescheid"
+      ]
+    },
+    {
+      "id": "kuendigung_wohnung",
+      "label": "Tenancy termination (Kündigung)",
+      "parents": [
+        "official_letter"
+      ],
+      "keywords": [
+        "kündigung",
+        "mietverhältnis",
+        "räumung",
+        "vermieter"
+      ],
+      "attrs": {
+        "high_stakes": true
+      }
+    }
+  ],
+  "legal_bases": [
+    {
+      "id": "owig_67",
+      "label": "§ 67 OWiG",
+      "text": "An objection (Einspruch) to a fine notice must be filed within two weeks of delivery.",
+      "period_days": 14
+    },
+    {
+      "id": "ao_355",
+      "label": "§ 355 AO",
+      "text": "An objection (Einspruch) to a tax assessment must be filed within one month of notification.",
+      "period_days": 30
+    },
+    {
+      "id": "sgg_84",
+      "label": "§ 84 SGG",
+      "text": "An objection (Widerspruch) to a social benefits decision must be filed within one month of notification.",
+      "period_days": 30
+    },
+    {
+      "id": "vwgo_70",
+      "label": "§ 70 VwGO",
+      "text": "An objection (Widerspruch) to an administrative decision must generally be filed within one month of notification.",
+      "period_days": 30
+    },
+    {
+      "id": "zpo_692",
+      "label": "§ 692 ZPO",
+      "text": "An objection (Widerspruch) to a court payment order (Mahnbescheid) can be filed within two weeks of delivery.",
+      "period_days": 14
+    }
+  ],
+  "item_kinds": [
+    {
+      "id": "deadline",
+      "label": "Deadline"
+    },
+    {
+      "id": "payment",
+      "label": "Payment"
+    },
+    {
+      "id": "appointment",
+      "label": "Appointment"
+    },
+    {
+      "id": "reference",
+      "label": "Reference number"
+    },
+    {
+      "id": "contact",
+      "label": "Contact"
+    },
+    {
+      "id": "consequence",
+      "label": "Consequence"
+    },
+    {
+      "id": "document_required",
+      "label": "Required documents"
+    },
+    {
+      "id": "other",
+      "label": "Other"
+    }
+  ],
+  "resources": [
+    {
+      "id": "verbraucherzentrale",
+      "label": "Verbraucherzentrale (consumer advice centre)",
+      "url": "https://www.verbraucherzentrale.de",
+      "description": "Independent consumer advice, including checking debt collection and suspicious payment demands."
+    },
+    {
+      "id": "schuldnerberatung",
+      "label": "Free debt counselling",
+      "url": "https://www.meine-schulden.de",
+      "description": "Free, recognised debt advice services if you cannot pay or receive collection letters."
+    },
+    {
+      "id": "mbeon",
+      "label": "mbeon – online migration counselling",
+      "url": "https://www.mbeon.de",
+      "description": "Free, confidential advice for migrants in many languages, including help with official letters."
+    },
+    {
+      "id": "mieterverein",
+      "label": "Tenants' association (Mieterverein)",
+      "url": "https://www.mieterbund.de",
+      "description": "Legal advice for tenants, e.g. on a termination of the tenancy."
+    },
+    {
+      "id": "beratungshilfe",
+      "label": "Legal aid (Beratungshilfe) at your local Amtsgericht",
+      "url": null,
+      "description": "People with low income can get legal advice for a small fee; ask at the local district court (Amtsgericht)."
+    },
+    {
+      "id": "police",
+      "label": "Police (report fraud)",
+      "url": null,
+      "description": "If a letter is a scam, do not pay; you can report it to the police."
+    }
+  ]
+}

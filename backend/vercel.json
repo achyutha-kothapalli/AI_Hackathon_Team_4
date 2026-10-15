@@ -4,7 +4,7 @@
     "api/index.py": {
       "maxDuration": 120,
       "includeFiles": "app/**",
-      "excludeFiles": "{tests/**,scripts/**,app/fixtures/sample_letter.png}"
+      "excludeFiles": "{tests/**,scripts/**,evaluation/**}"
     }
   },
   "rewrites": [{ "source": "/(.*)", "destination": "/api/index" }]

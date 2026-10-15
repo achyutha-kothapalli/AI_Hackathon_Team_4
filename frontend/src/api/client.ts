@@ -40,12 +40,14 @@ export function fetchMeta(): Promise<Meta> {
 
 export function analyzeDocument(
   pages: Blob[],
-  opts: { targetLanguage: string; profile?: string; signal?: AbortSignal },
+  opts: { targetLanguage: string; profile?: string; sample?: string; consent?: boolean; signal?: AbortSignal },
 ): Promise<AnalyzeResponse> {
   const form = new FormData();
   pages.forEach((blob, i) => form.append("files", blob, `page-${i + 1}.jpg`));
   form.append("target_language", opts.targetLanguage);
   if (opts.profile) form.append("profile", opts.profile);
+  if (opts.sample) form.append("sample", opts.sample); // demo mode only
+  if (opts.consent) form.append("consent", "true"); // explicit consent (health data, Art. 9 GDPR)
   return request<AnalyzeResponse>("/api/analyze", {
     method: "POST",
     body: form,

@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import type { SampleInfo } from "../../api/types";
 import type { PreparedPage } from "./preparePages";
 
 interface Props {
@@ -9,10 +10,41 @@ interface Props {
   onRemove: (id: string) => void;
   onMove: (id: string, delta: -1 | 1) => void;
   onAnalyze: () => void;
-  onTrySample: () => void;
+  onTrySample: (id: string) => void;
+  samples: SampleInfo[];
+  title: string;
+  hint: string; // "{max_pages}" is replaced by maxPages
+  processing: { provider: string; region: string; eu: boolean };
+  privacy?: { requires_consent: boolean; consent_text: string | null; recommend_eu_processing: boolean };
+  consent: boolean;
+  onConsent: (v: boolean) => void;
+  redact: boolean;
+  onRedact: (v: boolean) => void;
 }
 
-export function UploadPanel({ pages, maxPages, busy, onAddFiles, onRemove, onMove, onAnalyze, onTrySample }: Props) {
+export function UploadPanel({
+  pages,
+  maxPages,
+  busy,
+  onAddFiles,
+  onRemove,
+  onMove,
+  onAnalyze,
+  onTrySample,
+  samples,
+  title,
+  hint,
+  processing,
+  privacy,
+  consent,
+  onConsent,
+  redact,
+  onRedact,
+}: Props) {
+  const needsConsent = privacy?.requires_consent ?? false;
+  const consentText = (privacy?.consent_text ?? "")
+    .replace("{provider}", processing.provider)
+    .replace("{region}", processing.region);
   const fileInput = useRef<HTMLInputElement>(null);
   const cameraInput = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
@@ -36,9 +68,9 @@ export function UploadPanel({ pages, maxPages, busy, onAddFiles, onRemove, onMov
           take(e.dataTransfer.files);
         }}
       >
-        <p className="dz-title">Photograph or upload your letter</p>
+        <p className="dz-title">{title}</p>
         <p className="dz-sub">
-          Photos (JPEG, PNG) or a PDF · up to {maxPages} pages · lay the page flat in good light
+          {hint.replace("{max_pages}", String(maxPages))}
         </p>
         <div className="dz-actions">
           <button type="button" className="btn primary" onClick={() => cameraInput.current?.click()} disabled={busy}>
@@ -98,20 +130,51 @@ export function UploadPanel({ pages, maxPages, busy, onAddFiles, onRemove, onMov
               </li>
             ))}
           </ol>
-          <button type="button" className="btn primary wide" onClick={onAnalyze} disabled={busy}>
+          <label className="redact-option">
+            <input type="checkbox" checked={redact} onChange={(e) => onRedact(e.target.checked)} />
+            <span>
+              🔒 <strong>Hide personal details before sending</strong> — name, date of birth, address and insurance
+              numbers are blacked out on your device. Your original photo is never uploaded.
+            </span>
+          </label>
+          {needsConsent && (
+            <div className="consent">
+              <label>
+                <input type="checkbox" checked={consent} onChange={(e) => onConsent(e.target.checked)} />
+                <span>{consentText}</span>
+              </label>
+              {privacy?.recommend_eu_processing && !processing.eu && (
+                <p className="consent-warning" role="note">
+                  ⚠ The current AI provider processes data outside the EU ({processing.region}). For health data an
+                  EU provider is recommended.
+                </p>
+              )}
+            </div>
+          )}
+          <button
+            type="button"
+            className="btn primary wide"
+            onClick={onAnalyze}
+            disabled={busy || (needsConsent && !consent)}
+          >
             {busy ? "Working…" : `Translate & explain ${pages.length} page${pages.length === 1 ? "" : "s"}`}
           </button>
         </>
       ) : (
-        <p className="sample-cta">
-          No letter at hand?{" "}
-          <button type="button" className="btn link" onClick={onTrySample} disabled={busy}>
-            Try a sample fine notice
-          </button>
-        </p>
+        <div className="sample-cta">
+          <p>No document at hand? Try a sample:</p>
+          <div className="sample-buttons">
+            {samples.map((s) => (
+              <button key={s.id} type="button" className="btn link" onClick={() => onTrySample(s.id)} disabled={busy}>
+                {s.label}
+              </button>
+            ))}
+          </div>
+        </div>
       )}
       <p className="privacy">
-        Your images are sent to the AI service only to analyse them and are not stored by this app.
+        Processed by: {processing.provider} · {processing.region}. Only to analyse your document — nothing is
+        stored by this app.
       </p>
     </section>
   );

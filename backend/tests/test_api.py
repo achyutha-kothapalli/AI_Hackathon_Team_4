@@ -5,12 +5,12 @@ os.environ["ANALYZER"] = "mock"
 
 from fastapi.testclient import TestClient  # noqa: E402
 
-from app.main import app  # noqa: E402
 from app.analyzers.prompts import build_system_prompt  # noqa: E402
-from app.profiles import get_profile  # noqa: E402
-from app.services.analysis_service import sniff_image_type  # noqa: E402
+from app.domains import get_domain  # noqa: E402
+from app.main import app  # noqa: E402
+from app.services.uploads import sniff_image_type  # noqa: E402
 
-SAMPLE = Path(__file__).resolve().parents[1] / "app" / "fixtures" / "sample_letter.png"
+SAMPLE = Path(__file__).resolve().parent / "fixtures" / "sample_letter.png"
 client = TestClient(app)
 
 
@@ -29,7 +29,7 @@ def test_analyze_sample_letter():
     res = client.post(
         "/api/analyze",
         files=[("files", ("page1.png", png, "image/png"))],
-        data={"target_language": "English"},
+        data={"target_language": "English", "profile": "german_letter"},
     )
     assert res.status_code == 200, res.text
     body = res.json()
@@ -39,6 +39,35 @@ def test_analyze_sample_letter():
     for k in body["result"]["key_items"]:
         b = k["bbox"]
         assert 0 <= b["x0"] < b["x1"] <= 1000 and 0 <= b["y0"] < b["y1"] <= 1000
+    checks = body["checks"]
+    assert checks["document_class"]["id"] == "bussgeldbescheid"
+    assert checks["summary"]["grounded_items"] == checks["summary"]["total_items"]
+    assert checks["scam_suspected"] is False
+
+
+def test_knowledge_endpoint():
+    body = client.get("/api/knowledge/german_letter").json()
+    assert any(n["id"] == "class:bussgeldbescheid" for n in body["nodes"])
+    assert client.get("/api/knowledge/nope").status_code == 404
+
+
+def test_unreadable_photo_is_refused(monkeypatch):
+    from app.analyzers.mock import MockAnalyzer
+
+    original = MockAnalyzer.analyze
+
+    async def unreadable(self, request):
+        result = await original(self, request)
+        result.image_quality = "unreadable"
+        return result
+
+    monkeypatch.setattr(MockAnalyzer, "analyze", unreadable)
+    res = client.post(
+        "/api/analyze",
+        files=[("files", ("p.png", SAMPLE.read_bytes(), "image/png"))],
+        data={"profile": "german_letter"},
+    )
+    assert res.status_code == 422 and "retake" in res.json()["detail"]
 
 
 def test_rejects_non_images():
@@ -60,5 +89,31 @@ def test_sniff():
 
 
 def test_system_prompt_includes_profile_and_language():
-    prompt = build_system_prompt(get_profile("german_letter"), "Turkish")
+    prompt = build_system_prompt(get_domain("german_letter"), "Turkish")
     assert "Turkish" in prompt and "Einspruch" in prompt and "{" not in prompt
+
+
+def test_health_documents_require_explicit_consent():
+    files = [("files", ("p.png", SAMPLE.read_bytes(), "image/png"))]
+    res = client.post("/api/analyze", files=files, data={"profile": "medical_document"})
+    assert res.status_code == 428 and "consent" in res.json()["detail"]
+    res = client.post(
+        "/api/analyze",
+        files=files,
+        data={"profile": "medical_document", "consent": "true", "sample": "entlassbrief"},
+    )
+    assert res.status_code == 200
+    body = res.json()
+    assert body["checks"]["document_class"]["id"] == "discharge_letter"
+    assert len(body["result"]["medications"]) == 4
+    assert body["checks"]["readability"]["score"] >= body["checks"]["readability"]["target"]
+
+
+def test_meta_reports_processing_and_privacy():
+    body = client.get("/api/meta").json()
+    assert body["default_profile"] == "medical_document"
+    assert set(body["processing"]) == {"provider", "region", "eu"}
+    medical = next(p for p in body["profiles"] if p["id"] == "medical_document")
+    assert medical["privacy"]["requires_consent"] and medical["privacy"]["data_category"] == "health"
+    assert medical["privacy"]["redact_personal_data"] is True
+    assert "Einfache Sprache (simple German)" in medical["languages"]

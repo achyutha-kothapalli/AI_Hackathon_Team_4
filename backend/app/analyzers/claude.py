@@ -6,9 +6,9 @@ import logging
 import anthropic
 from pydantic import ValidationError
 
-from ..config import Settings
+from ..core.config import Settings
 from ..schemas.analysis import AnalysisResult
-from .base import AnalysisRequest, AnalyzerError
+from .base import AnalysisRequest, AnalyzerError, ProcessingInfo
 from .prompts import build_system_prompt
 
 log = logging.getLogger(__name__)
@@ -23,6 +23,7 @@ _SCHEMA = anthropic.transform_schema(AnalysisResult)
 
 class ClaudeAnalyzer:
     name = "claude"
+    processing = ProcessingInfo(provider="Anthropic (Claude API)", region="USA", eu=False)
 
     def __init__(self, settings: Settings):
         self._model = settings.claude_model
@@ -57,7 +58,7 @@ class ClaudeAnalyzer:
             async with self._client.messages.stream(
                 model=self._model,
                 max_tokens=32000,
-                system=build_system_prompt(request.profile, request.target_language),
+                system=build_system_prompt(request.domain, request.target_language),
                 messages=[{"role": "user", "content": content}],
                 output_config={
                     "effort": self._effort,
@@ -85,9 +86,7 @@ class ClaudeAnalyzer:
         if response.stop_reason == "refusal":
             raise AnalyzerError("The AI declined to analyse this document.", 422)
         if response.stop_reason == "max_tokens":
-            raise AnalyzerError(
-                "The document is too long to analyse in one go. Try fewer pages.", 413
-            )
+            raise AnalyzerError("The document is too long to analyse in one go. Try fewer pages.", 413)
         text = next((b.text for b in response.content if b.type == "text"), "")
         try:
             return AnalysisResult.model_validate_json(text)

@@ -1,4 +1,4 @@
-# How Letter Lens works
+# How BriefVerstehen works
 
 This document follows one letter from the user's camera to the screen. It
 explains what each part does and why it was built that way. For setup
@@ -19,12 +19,14 @@ flowchart LR
         V --> UI[Viewer + Insights]
     end
     subgraph Server["backend/ (FastAPI, Vercel function)"]
-        R[routes.py] --> S[AnalysisService<br/>validate + clean]
-        S --> AN[Analyzer<br/>Claude or mock]
-        AN --> C[(Claude API)]
+        R[routes.py] --> S[AnalysisService<br/>validate + sanitise]
+        S --> AN[Analyzer<br/>Claude · TrustedTokens · mock]
+        AN --> C[(AI provider)]
+        S --> H[Harness<br/>accuracy & safety checks]
+        D[Domain pack<br/>prompt · ontology · rules] -.-> AN & H
     end
     A -- "multipart: page images" --> R
-    R -- "JSON: AnalysisResult" --> A
+    R -- "JSON: result + checks" --> A
 ```
 
 There are two independent programs:
@@ -38,11 +40,263 @@ There are two independent programs:
 | Deployed as | Vercel serverless Python function | Static site on Vercel |
 
 They share only the HTTP API. The shape of the JSON is defined once in
-`backend/app/schemas/analysis.py` and mirrored in `frontend/src/api/types.ts`.
+`backend/app/schemas/` (`analysis.py`, `harness.py`, `api.py`) and mirrored in
+`frontend/src/api/types.ts`.
 
 ---
 
-## 2. Step by step: one letter's journey
+## 2. Architecture
+
+### Design principles
+
+| # | Principle | What it means in the code |
+|---|---|---|
+| 1 | **Generic engine, pluggable domain knowledge** | Everything specific to "German letters" lives in one *domain pack* (`backend/app/domains/german_letter/`): prompt instructions, UI wording, samples, ontology and rules. The engine around it has no German-letter knowledge. A new use case is a new folder. |
+| 2 | **The model proposes, code verifies** | The AI's answer is never trusted blindly: the harness checks it in code on the server, and the browser verifies it again with its own OCR. Neither check depends on which AI produced the answer. |
+| 3 | **One contract per boundary** | `schemas/analysis.py` is the AI's output (enforced as a JSON Schema by structured outputs), `schemas/harness.py` the checks report, `schemas/api.py` the HTTP responses. `frontend/src/api/types.ts` mirrors them. |
+| 4 | **Replaceable providers** | Analyzers (Claude, TrustedTokens, mock) implement one small interface. Demo mode works without any API key, and tests never call a real AI. |
+| 5 | **Stateless and private by design** | No database, no file storage, no accounts. Images exist only for the duration of one request; an EU-only processing path is available (TrustedTokens). |
+| 6 | **Fail loudly at build time, degrade gracefully at run time** | Invalid knowledge files, missing samples or broken rules fail at start-up and in CI. At run time, an unavailable OCR or CDN only removes a verification badge; it never blocks the result. |
+
+### Level 1 — System context
+
+```mermaid
+flowchart LR
+    U(("Person with a<br/>letter")) -->|photo / PDF| BV["BriefVerstehen<br/>(web app)"]
+    BV -->|translation, key facts,<br/>safety checks| U
+    BV -->|page images + prompt| AI["AI provider<br/>Anthropic Claude API<br/>or TrustedTokens (EU)"]
+    BV -->|OCR language data| CDN["jsDelivr CDN<br/>(Tesseract data)"]
+    BV -.->|help links| HELP["Advice services<br/>(Verbraucherzentrale, mbeon, …)"]
+```
+
+### Level 2 — Containers
+
+```mermaid
+flowchart LR
+    subgraph Browser
+        SPA["React single-page app<br/>frontend/<br/>prepare pages · OCR verification · display"]
+    end
+    subgraph Vercel
+        STATIC["Static hosting<br/>frontend/dist"]
+        FN["Python serverless function<br/>FastAPI · backend/app<br/>analyze · harness · knowledge graph"]
+    end
+    AI[("AI provider")]
+    STATIC -->|HTML/JS/CSS| SPA
+    SPA -->|"POST /api/analyze (images)<br/>GET /api/meta"| FN
+    FN -->|vision + structured output| AI
+```
+
+| Container | Technology | Responsibility | State |
+|---|---|---|---|
+| Single-page app | React 19, TypeScript, Vite | Upload and compress pages, render PDFs, run OCR, show highlights, translation, safety checks, calendar export | In memory, one tab |
+| API | FastAPI on a Vercel Python function | Validate input, call the AI, sanitise, run the harness, serve configuration and the knowledge graph | None |
+| AI provider | Claude (default) or TrustedTokens | Read the page images, return the structured analysis | None (per request) |
+
+### Level 3 — Backend components
+
+```mermaid
+flowchart TB
+    R["api/routes.py<br/>HTTP only"] --> S["services/analysis_service.py<br/>orchestration"]
+    S --> UP["services/uploads.py<br/>limits · file types"]
+    S --> D["domains/<br/>domain pack registry"]
+    S --> A["analyzers/<br/>claude · trustedtokens · mock"]
+    S --> SAN["services/sanitize.py"]
+    S --> H["harness/pipeline.py"]
+    H --> C1["checks/grounding"]
+    H --> C2["checks/knowledge_rules"]
+    H --> C3["checks/injection"]
+    H --> C4["checks/quality"]
+    C2 --> KG["knowledge/graph.py<br/>networkx engine"]
+    D --> KG
+    A --> P["analyzers/prompts.py"]
+    P --> D
+    CORE["core/<br/>config · errors · logging"] -.-> R & S & A
+```
+
+**Dependency rule.** Imports only point downwards:
+`api → services → (analyzers, harness, domains) → knowledge → schemas → core`.
+Nothing in `knowledge/`, `schemas/` or `core/` knows about HTTP or a specific AI,
+and nothing outside `domains/<id>/` contains domain knowledge.
+
+| Layer | Folder | Responsibility | Typical change |
+|---|---|---|---|
+| Core | `app/core/` | Settings, error type and HTTP mapping, logging with request ids and stage timing | New environment variable |
+| HTTP | `app/api/` | Routes and dependency wiring only; typed responses | New endpoint |
+| Orchestration | `app/services/` | The analysis use case: validate → analyze → abstain → sanitise → harness | New step in the flow |
+| AI providers | `app/analyzers/` | Turn page images into an `AnalysisResult` | New AI provider |
+| Domain packs | `app/domains/` | Everything specific to a use case | **New hackathon problem** |
+| Knowledge engine | `app/knowledge/` | Load, validate and query ontology + rules as a graph | Rarely |
+| Harness | `app/harness/` | Run independent checks, assemble the report | New check |
+| Contracts | `app/schemas/` | Pydantic models at every boundary | New field |
+
+### Level 3 — Frontend components
+
+```mermaid
+flowchart TB
+    APP["App.tsx<br/>layout"] --> HOOK["features/analysis/useAnalysis.ts<br/>all state + pipeline"]
+    HOOK --> CLIENT["api/client.ts"]
+    HOOK --> PREP["features/upload/preparePages.ts"]
+    HOOK --> OCR["features/ocr/verifyHighlights.ts"]
+    APP --> UPL["features/upload/UploadPanel"]
+    APP --> VIEW["features/viewer/DocumentViewer"]
+    APP --> INS["features/insights/InsightsPanel"]
+    INS --> SAFE["features/safety/ChecksPanel"]
+    INS --> CAL["features/calendar/ics.ts"]
+    HOOK -. "wording, samples,<br/>OCR language" .-> META["GET /api/meta<br/>(domain pack)"]
+```
+
+One hook (`useAnalysis`) owns all state and side effects; every component only
+renders props and calls callbacks. Each `features/` folder is an independent unit
+that one person can own. Use-case wording, sample letters and the OCR language
+come from the backend's domain pack via `/api/meta`, so the frontend needs no
+change for a new domain.
+
+### Request lifecycle
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant API as FastAPI
+    participant AI as AI provider
+    B->>B: preparePages (resize, PDF→JPEG, ≤ 4.4 MB)
+    par in parallel
+        B->>API: POST /api/analyze (pages, language, profile)
+        API->>API: validate uploads, pick domain pack
+        API->>AI: images + system prompt (+ ontology classes)
+        AI-->>API: AnalysisResult (JSON Schema enforced)
+        API->>API: abstain if unreadable, sanitise
+        API->>API: harness: grounding, rules, injection, quality
+        API-->>B: { result, checks }
+    and
+        B->>B: Tesseract OCR of each page
+    end
+    B->>B: verify quotes on the photo, text coverage
+    B->>B: render highlights, translation, safety checks
+```
+
+Every response carries an `X-Request-ID` header; the backend log shows the same id
+with the duration of each stage (`analyzer:claude`, `harness`).
+
+### Extension points
+
+| To… | Add / change | Touches the engine? |
+|---|---|---|
+| Solve a **new problem** (other documents, language, domain) | Copy `backend/app/domains/german_letter/` → edit `__init__.py`, `ontology.json`, `rules.json`, `samples/`; register it in `domains/__init__.py`; set `DEFAULT_PROFILE` | No |
+| Add a **rule** (completeness, legal, scam, escalation) | One JSON object in the domain's `rules.json` | No |
+| Add a **check** to the harness | New file in `harness/checks/`, one line in `checks/__init__.py` | No |
+| Add an **AI provider** | New file in `analyzers/`, one branch in `create_analyzer()` | No |
+| Add a **field** to the analysis | `schemas/analysis.py` + `frontend/src/api/types.ts` + where it is displayed | Contract only |
+| Add a **UI feature** | New folder in `frontend/src/features/`, used from `App.tsx` or `InsightsPanel.tsx` | No |
+
+Step-by-step recipes: [CONTRIBUTING.md](CONTRIBUTING.md). Design decisions and their
+reasons: [docs/adr/](docs/adr/).
+
+### File map: what each file does
+
+**Repository root**
+
+| Path | Purpose |
+|---|---|
+| `README.md` | Overview, quick start, deployment |
+| `HOW_IT_WORKS.md` | This document |
+| `CONTRIBUTING.md` | Recipes: add a domain, rule, check, analyzer; workflow and quality gates |
+| `CLAUDE.md` | Project conventions and commands for Claude Code (read automatically) |
+| `PRIVACY.md` | Data flow, what is sent where, retention |
+| `OFFICIAL_SOURCES.md` | Official German and EU sources behind the ontology and rules |
+| `docs/BACKEND_API.md`, `docs/openapi.json` | Backend API handoff with examples; OpenAPI contract |
+| `docs/adr/` | Architecture decision records |
+| `vercel.json`, `api/index.py`, `requirements.txt`, `.vercelignore` | One-project Vercel deploy from the repo root |
+| `.github/workflows/ci.yml` | CI: lint, tests, harness benchmark, frontend build |
+| `.gitattributes`, `.gitignore` | Line endings, ignored files |
+
+**Backend — `backend/`**
+
+| Path | Purpose |
+|---|---|
+| `api/index.py` | Vercel entry point when `backend/` is deployed on its own |
+| `pyproject.toml` | Project metadata, Ruff (lint + format) and pytest configuration |
+| `requirements.txt` / `requirements-dev.txt` | Pinned runtime / development dependencies |
+| `vercel.json`, `.vercelignore` | Vercel config for the backend-only deploy |
+| `.env.example` | All environment variables with explanations |
+| **`app/main.py`** | Application factory: logging, CORS, error handlers, routes |
+| `app/core/config.py` | `Settings` from environment variables; app name and version |
+| `app/core/errors.py` | `AppError(message, status)` and its JSON error response |
+| `app/core/logging.py` | Log format, request-id middleware, `timed()` stage timing |
+| `app/api/routes.py` | `GET /api/health`, `/api/meta`, `/api/knowledge/{profile}`; `POST /api/analyze` |
+| `app/api/deps.py` | Builds one `AnalysisService` per process |
+| `app/services/analysis_service.py` | The use case: validate → domain → analyzer → abstain → sanitise → harness |
+| `app/services/uploads.py` | Upload limits and file-type detection by magic bytes |
+| `app/services/sanitize.py` | Clamps page indices and bounding boxes from the AI |
+| `app/analyzers/base.py` | `Analyzer` interface, `AnalysisRequest`, `PageImage`, `AnalyzerError` |
+| `app/analyzers/__init__.py` | `create_analyzer()` factory (chooses by `ANALYZER`) |
+| `app/analyzers/prompts.py` | Generic system prompt + domain instructions + ontology class list |
+| `app/analyzers/claude.py` | Claude: vision, structured outputs, streaming, refusal fallback, error mapping |
+| `app/analyzers/trustedtokens.py` | TrustedTokens (OpenAI-compatible): vision, JSON schema with JSON-mode fallback |
+| `app/analyzers/mock.py` | Demo mode: returns the domain pack's sample answers |
+| `app/domains/base.py` | `Domain`, `DomainUI`, `SampleDocument`: what a domain pack consists of |
+| `app/domains/__init__.py` | Registry of domain packs, `get_domain()` |
+| `app/domains/german_letter/__init__.py` | The German-letter domain: prompt instructions, UI wording, languages, samples |
+| `app/domains/german_letter/ontology.json` | Document classes (is-a hierarchy), legal bases, item kinds, help resources |
+| `app/domains/german_letter/rules.json` | 24 accuracy & safety rules |
+| `app/domains/german_letter/samples/*.json` | Exact answers for the three sample letters |
+| `app/domains/medical_document/__init__.py` | The medical domain: plain-language prompt, UI wording, languages incl. Einfache Sprache, consent text, samples |
+| `app/domains/medical_document/ontology.json` | Medical document classes, legal bases (§ 630e/g BGB, § 31a/39 SGB V, Art. 5/9 GDPR), help resources (112, 116117, …), readability target |
+| `app/domains/medical_document/rules.json` | Medication coverage, no-advice guards, medication safety notes, escalation |
+| `app/knowledge/models.py` | Pydantic models that validate `ontology.json` and `rules.json` |
+| `app/knowledge/graph.py` | `KnowledgeGraph` on networkx: validation, lineage, rule inheritance, classification, JSON export |
+| `app/harness/base.py` | The check contract: `CheckContext`, `CheckOutput`, `Check` |
+| `app/harness/pipeline.py` | `run_harness()`: classify, run checks, merge, escalate, summarise |
+| `app/harness/checks/grounding.py` | "Nothing invented": quote in letter, numbers/amounts/dates in quote |
+| `app/harness/checks/knowledge_rules.py` | Executes the domain's rules: nothing lost, legal periods, scam signs, escalation |
+| `app/harness/checks/injection.py` | Prompt-injection detection in the letter text |
+| `app/harness/checks/quality.py` | Poor photos, low-confidence facts, model notes |
+| `app/harness/checks/readability.py` | Readability of the explanation (Flesch / Amstad) against the domain's target |
+| `app/harness/text.py` | Number words, German dates and amounts, IBAN parsing and checksum, evidence snippets |
+| `app/schemas/analysis.py` | Contract of the AI's answer (sent to the model as JSON Schema) |
+| `app/schemas/harness.py` | Contract of the harness report |
+| `app/schemas/api.py` | HTTP response models (`AnalyzeResponse`, `MetaResponse`) |
+| `tests/` | API, domain packs, harness (incl. benchmark gate), both AI providers (fake HTTP), Vercel entry points |
+| `tests/fixtures/sample_letter.png` | Image used by the API tests |
+| `evaluation/faults.py`, `evaluation/benchmark.py` | Fault-injection benchmark of the harness |
+| `evaluation/run_eval.py` | End-to-end evaluation against a real AI provider |
+| `evaluation/cases/<id>/` | Evaluation letters: `page_0.png`, `expected.json`, `reference_output.json` |
+| `evaluation/results/` | Benchmark and evaluation reports |
+| `scripts/make_samples.py` | Renders the sample letters with exact ground truth for samples, tests and evaluation |
+| `scripts/medical_samples.py` | The medical sample documents (discharge letter, medication plan) |
+| `scripts/export_openapi.py` | Writes `docs/openapi.json` from the running app's schema |
+
+**Frontend — `frontend/`**
+
+| Path | Purpose |
+|---|---|
+| `index.html`, `public/` | Page shell, favicon, sample letter images |
+| `vite.config.ts` | Build config; dev proxy from `/api` to the backend |
+| `package.json`, `tsconfig.json` | Dependencies, scripts, strict TypeScript |
+| `src/main.tsx`, `src/App.tsx` | Entry point; layout of the start and results screens |
+| `src/styles.css` | All styles; colour tokens with dark mode |
+| `src/api/types.ts` | TypeScript mirror of the backend contracts |
+| `src/api/client.ts` | `fetchMeta()`, `analyzeDocument()`, error handling, `VITE_API_URL` |
+| `src/config/app.ts` | Product constants (app name) |
+| `src/config/fallback.ts` | Defaults until `/api/meta` has loaded |
+| `src/components/Progress.tsx` | Rotating progress messages |
+| `src/features/analysis/useAnalysis.ts` | All state and the client-side pipeline (prepare → analyze ∥ OCR → verify) |
+| `src/features/upload/UploadPanel.tsx` | Camera, file picker, drag and drop, page order, sample buttons |
+| `src/features/upload/preparePages.ts` | Photo and PDF → compressed JPEG pages within the upload budget |
+| `src/features/ocr/verifyHighlights.ts` | Tesseract OCR, quote matching on the photo, text coverage |
+| `src/features/viewer/DocumentViewer.tsx` | Page images with highlight / translated / original overlays |
+| `src/features/viewer/FitText.tsx` | Fits translated text into its paragraph box |
+| `src/features/insights/InsightsPanel.tsx` | Summary, steps, key-fact cards, full translation |
+| `src/features/safety/ChecksPanel.tsx` | Safety checks: scam alarm, scores, findings, help resources |
+| `src/features/calendar/ics.ts` | Calendar (.ics) export: dates with reminders, recurring medicine reminders |
+| `src/features/medication/MedicationSchedule.tsx` | Daily medicine plan (morning/noon/evening/night, other times, stopped), reminders |
+| `src/features/accessibility/` | Read aloud (`speech.ts`, `ReadAloudButton.tsx`), text size and high contrast (`DisplaySettings.tsx`) |
+| `src/features/privacy/redact.ts` | Finds personal identifiers via OCR and blacks them out before upload |
+| `src/lib/highlights.ts` | Turns key facts and medicines into highlightable items for the viewer and OCR check |
+| `src/lib/kinds.ts` | Icons and colours per key-fact kind, date helpers |
+
+---
+
+## 3. Step by step: one letter's journey
 
 ### Step 1 — The user adds pages (frontend)
 
@@ -87,19 +341,19 @@ answers, so verification adds no visible waiting time.
 ### Step 4 — The backend validates the request
 
 `backend/app/api/routes.py` receives the files and hands them to
-`backend/app/services/analysis_service.py`, which:
+`backend/app/services/analysis_service.py` (using `services/uploads.py`), which:
 
 - rejects empty uploads, more than `MAX_PAGES` pages, or more than `MAX_TOTAL_UPLOAD_BYTES`;
 - checks each file's **magic bytes** (not its file name) to confirm it is JPEG, PNG,
   WebP or GIF, and rejects anything else with HTTP 415;
-- looks up the **profile**, which describes the use case (see section 4).
+- looks up the **domain pack** for the use case (`app/domains/`, see section 2).
 
 ### Step 5 — Claude reads the letter
 
 `backend/app/analyzers/claude.py` sends a single request to Claude:
 
 - **System prompt** = generic instructions (`analyzers/prompts.py`) + the profile's
-  domain instructions (`profiles/german_letter.py`).
+  domain instructions (`domains/german_letter/__init__.py`).
 - **User message** = "Page 0:", image, "Page 1:", image, … and the target language.
 - **Structured outputs**: `output_config.format` carries a JSON Schema generated
   from the Pydantic `AnalysisResult` model. The API guarantees the reply matches
@@ -122,6 +376,40 @@ The response is checked before it is used:
 
 All of these are `AnalyzerError`s. `main.py` turns them into
 `{"detail": "..."}` JSON, which the frontend shows in a red banner.
+
+#### Alternative: TrustedTokens (EU-hosted open models)
+
+`backend/app/analyzers/trustedtokens.py` does the same job through
+[TrustedTokens](https://trustedtokens.eu/docs/), an AI gateway by TNG that runs
+open-source models in Germany and keeps data in the EU. Use it when data must stay
+in the EU, or when the hackathon provides TrustedTokens credits.
+
+- **API:** OpenAI-compatible `POST https://api.trustedtokens.eu/v1/chat/completions`,
+  authenticated with `Authorization: Bearer <TRUSTEDTOKENS_API_KEY>` (via the `openai` Python SDK).
+- **Same prompt, same pages:** the system prompt is built by the same `build_system_prompt`;
+  each page is sent as an `image_url` data URL.
+- **Structured output:** it first asks for `response_format: json_schema` (strict) with
+  the schema generated from `AnalysisResult`. If the model rejects that, it retries once
+  in `json_object` mode with the schema written into the prompt. Either way the answer
+  is validated with Pydantic; Markdown code fences around the JSON are tolerated.
+- **The model must read images.** Pick a vision-capable model id from
+  `GET https://api.trustedtokens.eu/v1/models` (needs your key) and set `TRUSTEDTOKENS_MODEL`.
+  If the model is text-only, the user sees "does the model support images?".
+- **Errors** map to the same messages as above (`finish_reason: length` → 413,
+  `content_filter` → 422, invalid JSON → 502, bad key → 500, rate limit → 429).
+
+Enable it in `backend/.env` (or in Vercel's environment variables):
+
+```
+ANALYZER=trustedtokens
+TRUSTEDTOKENS_API_KEY=<your token>
+TRUSTEDTOKENS_MODEL=<vision-capable model id>
+```
+
+If only `TRUSTEDTOKENS_API_KEY` is set (no Anthropic key), it is picked automatically.
+Open-source models are generally less precise than Claude at placing bounding boxes, so
+expect more "≈ approximate" highlights. The OCR verification step is what keeps the
+highlights trustworthy either way.
 
 ### Step 6 — The backend cleans the answer
 
@@ -151,6 +439,14 @@ The cards show **✓ found on page** or **≈ approximate spot**. If OCR fails
 entirely (for example, the CDN download is blocked), the results still show,
 just without these badges.
 
+### Step 7b — The harness checks the answer
+
+Before the answer leaves the backend, the **accuracy & safety harness** checks
+it: "nothing invented" (every fact traceable to the letter), "nothing lost"
+(knowledge-graph rules for the letter's type), scam signs, prompt injection and
+reading quality. Its report travels with the result as `checks`. See
+[section 10](#10-accuracy--safety-harness).
+
 ### Step 8 — The results screen
 
 - `features/viewer/DocumentViewer.tsx` draws each page photo and places absolutely
@@ -171,7 +467,7 @@ just without these badges.
 
 ---
 
-## 3. The data contract
+## 4. The data contract
 
 Everything the AI produces fits this shape (abridged):
 
@@ -228,105 +524,92 @@ the new fields.
 
 ---
 
-## 4. Backend internals
+## 5. Backend internals
 
-```
-backend/app/
-├── main.py              create_app(): CORS, error handler, router
-├── config.py            Settings from environment variables
-├── api/routes.py        GET /api/health, GET /api/meta, POST /api/analyze
-├── services/
-│   └── analysis_service.py   validation → analyzer → sanitising
-├── analyzers/           HOW to analyse (swappable)
-│   ├── base.py          Analyzer protocol, PageImage, AnalysisRequest, AnalyzerError
-│   ├── claude.py        Claude implementation
-│   ├── mock.py          returns fixtures/sample_result.json
-│   ├── prompts.py       generic instructions shared by all profiles
-│   └── __init__.py      create_analyzer() factory
-├── profiles/            WHAT to look for (domain knowledge)
-│   ├── base.py          Profile dataclass
-│   └── german_letter.py Fristen, Bußgeld, Aktenzeichen, Einspruch, …
-├── schemas/analysis.py  the data contract
-└── fixtures/            sample letter image + its exact analysis
-```
+The structure, the dependency rule and what each file does are described in
+[section 2](#2-architecture). This section covers configuration, demo mode and tests.
 
-The layers have one job each:
-
-- **Routes** only deal with HTTP: parsing the form and returning JSON.
-- **Service** owns rules that apply whatever AI is used: limits, file types, clean-up.
-- **Analyzer** only talks to a model. Adding OpenAI, Gemini or a classic OCR +
-  translation pipeline means one new class plus one line in `create_analyzer`.
-- **Profile** carries the domain knowledge. A different hackathon problem
-  (rental contracts, medical letters, school notices, another language) is a new
-  profile file, usually with no other backend change.
-
-`GET /api/meta` tells the frontend which analyzer is active, which profiles and
-target languages exist, and the upload limits. The UI configures itself from it
-and shows a "Demo mode" banner when the mock analyzer is running.
+`GET /api/meta` tells the frontend the app version, which analyzer is active, the
+domain packs (with their wording, sample letters and OCR language), the target
+languages and the upload limits. The UI configures itself from it and shows a
+"Demo mode" banner when the mock analyzer is running.
 
 ### Configuration (`backend/.env`)
 
 | Variable | Default | Purpose |
 |---|---|---|
 | `ANTHROPIC_API_KEY` | — | Enables the Claude analyzer |
-| `ANALYZER` | `claude` if a key is set, else `mock` | Force one analyzer |
+| `ANALYZER` | `claude` if `ANTHROPIC_API_KEY` is set, else `trustedtokens` if `TRUSTEDTOKENS_API_KEY` is set, else `mock` | Force one analyzer |
 | `CLAUDE_MODEL` | `claude-opus-5-5` | Model id |
 | `CLAUDE_EFFORT` | `medium` | `low` is faster and cheaper, `high` more thorough |
-| `DEFAULT_PROFILE` | `german_letter` | Profile used when the client sends none |
+| `TRUSTEDTOKENS_API_KEY` | — | Enables the TrustedTokens analyzer |
+| `TRUSTEDTOKENS_MODEL` | `Qwen/Qwen3.8-27B` | Must be a vision-capable model id |
+| `TRUSTEDTOKENS_BASE_URL` | `https://api.trustedtokens.eu/v1` | Only change if TrustedTokens tells you to |
+| `DEFAULT_PROFILE` | `german_letter` | Domain pack used when the client sends none |
 | `MAX_PAGES` | `6` | Pages per document |
 | `MAX_TOTAL_UPLOAD_BYTES` | `4400000` | Must stay under Vercel's 4.5 MB body limit |
 | `CORS_ORIGINS` | `http://localhost:5173` | Comma-separated frontend URLs allowed to call the API |
 
 ### Mock mode
 
-Without an API key, `MockAnalyzer` returns `fixtures/sample_result.json` for
-any upload. That fixture is generated by `scripts/make_sample.py`, which draws
-the sample letter itself and therefore knows the exact pixel position of every
-word. The mock highlights are pixel-perfect and the OCR verification passes,
-which makes mock mode a realistic test bed for all frontend work.
+Without an API key, `MockAnalyzer` returns a prepared answer from the domain
+pack's `samples/` folder for any upload: the genuine fine notice by default, or the
+scam / injection letter when the UI's "Try a sample" button for it was used.
+The fixtures are generated by `scripts/make_samples.py`, which draws the sample
+letters itself and therefore knows the exact pixel position of every word. The
+mock highlights are pixel-perfect and the OCR verification passes, which makes
+mock mode a realistic test bed for all frontend work. The harness runs in mock
+mode too, so the safety checks can be demonstrated without an API key.
 
 ### Tests
 
 `backend/tests/` covers the API (health, meta, a full analysis in mock mode,
-rejected file types, page limits) and the Claude analyzer. The analyzer tests
+rejected file types, page limits, unreadable photos, request ids), the
+completeness of every domain pack, the knowledge graph and harness (including
+the fault-injection benchmark as a test gate), and both AI analyzers. The analyzer tests
 use a **fake HTTP transport**: they check the exact request sent to Claude
 (model, schema, effort, fallback header, one image per page) and the error
 mapping (refusal, truncation, rate limit) without network access or a key.
 
+### Quality gates
+
+| Gate | Command (in `backend/`) | Runs in CI |
+|---|---|---|
+| Lint and formatting | `ruff check . && ruff format --check .` | ✓ |
+| Tests (51) | `pytest` | ✓ |
+| Harness benchmark (must stay 100 %, 0 false alarms) | `python -m evaluation.benchmark` | ✓ |
+| Frontend type-check and build | `npm run build` (in `frontend/`) | ✓ |
+
+### Logging
+
+Each request is logged with its method, path, status and duration, and gets an id
+(returned as `X-Request-ID`). Inside a request, the analyzer and harness stages log
+their duration, e.g. `INFO [3f9c1a2b7d4e] app: stage=analyzer:claude duration_ms=18342`.
+Images and letter text are never logged.
+
 ---
 
-## 5. Frontend internals
+## 6. Frontend internals
 
-```
-frontend/src/
-├── main.tsx, App.tsx, styles.css
-├── api/
-│   ├── types.ts         mirror of the backend contract
-│   └── client.ts        fetchMeta(), analyzeDocument(); VITE_API_URL support
-├── lib/kinds.ts         icons/colours per kind, date helpers
-└── features/
-    ├── analysis/useAnalysis.ts   ALL state + the pipeline (steps 2, 3, 7)
-    ├── upload/                   UploadPanel + preparePages
-    ├── ocr/verifyHighlights.ts   Tesseract + quote matching
-    ├── viewer/                   DocumentViewer + FitText
-    ├── insights/InsightsPanel.tsx
-    └── calendar/ics.ts
-```
+See [section 2](#2-architecture) for the component diagram and the file map.
 
 - **One hook owns the logic.** `useAnalysis` holds pages, status, errors, the
   response and verification results. Components only display props and call
   callbacks, so UI work and pipeline work don't collide.
 - **Feature folders** map to people: each folder can be changed without touching the others.
+- **Domain-driven wording.** Headline, intro, upload hints, progress messages, disclaimer and
+  sample letters come from the backend's domain pack via `/api/meta` (`src/config/fallback.ts`
+  holds the defaults until it loads).
 - **Where the API is:** `client.ts` uses `VITE_API_URL` when set (production, where
   the backend has its own domain) and same-origin `/api` otherwise. In development,
-  `vite.config.ts` proxies `/api` to `http://127.0.0.1:8000`.
+  `vite.config.ts` proxies `/api` to `http://127.0.0.1:8000` (override with `API_PROXY_TARGET`).
 - **Theming:** colours are CSS variables with a dark-mode variant. Highlight colours
   stay fixed because they are always drawn on a white page.
 - **Right-to-left languages:** translated text uses `dir="auto"`, so Arabic and Persian display correctly.
 
 ---
 
-## 6. Deployment
+## 7. Deployment
 
 There are two ways to deploy, and both configurations live in the repo side by side.
 
@@ -352,6 +635,40 @@ Importing the repo uses the **root** `vercel.json`:
 - Frontend and API share one domain, so the frontend's default same-origin `/api`
   calls just work and no CORS setup is needed. Only `ANTHROPIC_API_KEY` must be set.
 - The root `.vercelignore` keeps virtualenvs, `node_modules`, tests and scripts out of the upload.
+
+#### Step by step: deploy option A
+
+1. **Sign in.** Go to [vercel.com](https://vercel.com) → *Continue with GitHub*, using the
+   account that owns the repository. The free Hobby plan is enough.
+2. **Import.** *Add New… → Project* → pick the repository → *Import*. If it isn't
+   listed, click *Adjust GitHub App Permissions* and grant access to it.
+3. **Configure.** Change as little as possible:
+   - *Project Name*: e.g. `briefverstehen`, which gives `https://briefverstehen.vercel.app`.
+   - *Framework Preset*: leave as detected, or *Other*.
+   - *Root Directory*: leave at `./` (the repo root). Don't choose `backend` or `frontend`.
+   - *Build and Output Settings*: leave untouched; the root `vercel.json` sets them.
+   - *Environment Variables*: add `ANTHROPIC_API_KEY` = your key. Optional:
+     `CLAUDE_EFFORT` (`low` / `medium` / `high`), `MAX_PAGES`.
+4. **Deploy.** Click *Deploy*. The build takes about 1–2 minutes.
+5. **Check.**
+   - `https://<project>.vercel.app/api/health` returns `{"status":"ok"}`.
+   - `https://<project>.vercel.app/api/meta` starts with `"analyzer":"claude"`. If it
+     says `"mock"`, the key is missing.
+   - The home page shows no yellow "Demo mode" banner, and uploading a letter returns a real analysis.
+
+After that, every push to `main` redeploys production automatically, and every
+pull request gets its own preview URL.
+
+**Troubleshooting**
+
+| Symptom | Fix |
+|---|---|
+| `/api/meta` says `"analyzer":"mock"` | *Settings → Environment Variables*: set `ANTHROPIC_API_KEY` for Production, then *Deployments → ⋯ → Redeploy* (environment variables only apply to new deployments) |
+| Build fails mentioning `maxDuration` | Your plan allows less time: lower `"maxDuration"` in the root `vercel.json` (e.g. to `60`) and push |
+| Site loads but `/api/...` returns 404 | Root Directory was changed; set it back to the repo root in *Settings → General* and redeploy |
+| Analysis ends with "took too long" (504) | Set `CLAUDE_EFFORT=low` or upload fewer pages |
+| "Upload is too large" (413) | Pages are compressed automatically; use fewer pages or lower-resolution photos |
+| Anything else | Open the deployment → *Logs* / *Build Logs* and read the first red line |
 
 ### Option B — two projects
 
@@ -393,9 +710,9 @@ With the Vercel CLI the same thing works from each folder:
 
 ---
 
-## 7. Privacy and limits
+## 8. Privacy and limits
 
-- Nothing is stored. Images go to the backend, are forwarded to Claude, and are
+- Nothing is stored. Images go to the backend, are forwarded to the AI provider (Claude, or TrustedTokens in Germany), and are
   discarded when the request ends. Results live only in the browser tab.
 - Tesseract downloads its language data from a CDN the first time it is used.
 - HEIC photos (iPhone default) decode only in Safari; other browsers need JPEG/PNG.
@@ -406,13 +723,316 @@ With the Vercel CLI the same thing works from each folder:
 
 ---
 
-## 8. Extending it for the main hackathon
+## 9. Extending it for the main hackathon
 
 | You want to… | Change |
 |---|---|
-| Handle a different document type or domain | Add `backend/app/profiles/<name>.py` and register it in `profiles/__init__.py` |
+| Handle a different document type or domain | Copy `backend/app/domains/german_letter/` to a new domain pack and register it in `domains/__init__.py` (see CONTRIBUTING.md) |
 | Extract new fields | `schemas/analysis.py` + `frontend/src/api/types.ts`, then render them in `InsightsPanel` |
 | Add a key-item category | `KeyItemKind` on both sides + `frontend/src/lib/kinds.ts` |
 | Use another AI provider | New class in `backend/app/analyzers/`, one line in `create_analyzer` |
 | Add a feature (draft a reply, find the right office, …) | New route + service in the backend; new `frontend/src/features/<name>/` folder |
 | Support another source language | The profile's `source_language`; add its Tesseract code in `verifyHighlights.ts` |
+| Add a domain rule, document type or help resource | The domain's `rules.json` / `ontology.json` (no code; see section 10) |
+| Add a harness check | New file in `backend/app/harness/checks/`, one line in `checks/__init__.py` |
+
+---
+
+## 10. Accuracy & safety harness
+
+The judging criterion "**nothing lost or invented, with safeguards in place**"
+maps one-to-one onto code that runs after **every** AI answer, whichever
+analyzer produced it (Claude, TrustedTokens, mock):
+
+| Criterion | How it is enforced | Where |
+|---|---|---|
+| **Nothing invented** | Every fact must cite a verbatim quote; code checks the quote is in the letter and every number, amount and date of the fact is in the quote | `harness/checks/grounding.py` |
+| … independently | The browser OCRs the photo itself and finds each quote on the page (✓ found on page) | `frontend/src/features/ocr` |
+| **Nothing lost** | Knowledge-graph rules: each letter type must yield its required facts (e.g. a Bescheid → objection deadline); every deadline, amount, IBAN, reference, phone number and consequence printed in the letter must be covered by a fact | `harness/checks/knowledge_rules.py` + `rules.json` |
+| … independently | The browser compares every word OCR reads on the photo with the AI's transcription ("% of the text covered") | `textCoverage()` |
+| **Safeguards** | Scam signs (vouchers/crypto, extreme threats, foreign IBAN for an authority, invalid IBAN checksum), prompt-injection detection, refusal of unreadable photos, low-confidence flags, escalation to human help | `harness/checks/` (knowledge_rules, injection, quality) |
+
+The harness never edits the AI's answer. It returns a `checks` report next to
+the result, and the UI shows it in the **Safety checks** panel: a scam alarm,
+"x/y facts traced to the letter", "% of the text covered", the findings by
+severity, and where to get help. Untraceable facts are marked on their card.
+
+```mermaid
+flowchart LR
+    A[AI answer] --> S[sanitise]
+    S --> C[classify into ontology]
+    C --> G[grounding<br/>nothing invented]
+    C --> R[knowledge-graph rules<br/>nothing lost · legal · scam · escalation]
+    C --> Q[safety<br/>injection · quality]
+    G & R & Q --> H[HarnessReport]
+    H --> UI[Safety checks panel]
+    P[Photo] --> O[browser OCR] --> V[quote found on page<br/>text coverage] --> UI
+```
+
+### The knowledge graph
+
+The domain pack `backend/app/domains/german_letter/` holds two JSON files. `graph.py` loads
+them into a **networkx** `DiGraph` (58 nodes, 68 edges) and validates them
+with Pydantic: unknown references, duplicate rule ids, invalid regexes and
+cycles in the class hierarchy fail at startup and in the tests.
+
+| Node type | Count | Example |
+|---|---|---|
+| `class:` document class (ontology) | 15 | `class:bussgeldbescheid` |
+| `legal:` legal basis | 5 | `legal:owig_67` — objection within two weeks (§ 67 OWiG) |
+| `kind:` key-item kind | 8 | `kind:deadline` |
+| `resource:` where to get help | 6 | `resource:verbraucherzentrale` |
+| `rule:` rule | 24 | `rule:C-OBJECTION-DEADLINE` |
+
+| Edge (`rel`) | Meaning |
+|---|---|
+| `class —is_a→ class` | ontology hierarchy; **multiple parents** allowed |
+| `rule —applies_to→ class` | the rule holds for that class **and all its descendants** |
+| `rule —based_on→ legal` | statutory basis shown to the user |
+| `rule —concerns→ kind` | which kind of fact the rule checks |
+| `rule —refers_to→ resource` | help offered when the rule fires |
+
+**Inheritance example.** A Bußgeldbescheid *is a* administrative decision *and*
+a payment demand, both of which are official letters. So it inherits:
+
+```
+bussgeldbescheid → administrative_decision → authority_letter → official_letter
+                 → payment_demand
+rules_for("bussgeldbescheid") = 12 rules, e.g.
+  L-PERIOD-OWIG            (own)                      objection period should be 2 weeks
+  C-OBJECTION-DEADLINE     (administrative_decision)  an objection deadline must be extracted
+  C-PAYMENT-AMOUNT         (payment_demand)           an amount must be extracted
+  S-FOREIGN-IBAN-AUTHORITY (authority_letter)         authorities don't use foreign accounts
+  S-UNUSUAL-PAYMENT-METHOD (official_letter)          vouchers / crypto = scam
+```
+
+**Classification.** The system prompt lists the ontology's classes
+(`prompt_catalog()`), so the model answers with a `document_class` id. If that
+id is unknown, the harness falls back to keyword scoring, preferring the most
+specific class.
+
+`GET /api/knowledge/german_letter` returns the whole graph as node-link JSON,
+for inspection or visualisation.
+
+### Rule types (`rules.json`)
+
+| Type | Purpose | Example |
+|---|---|---|
+| `requires_item` | Nothing lost: this class must yield a fact of this kind (optionally matching keywords) | Bescheid → deadline mentioning *Einspruch/Widerspruch* |
+| `signal_coverage` | Nothing lost: every regex match in the letter must be covered by some fact | `bis spätestens 02.11.2026`, `IBAN …`, `Kassenzeichen …` |
+| `expected_period` | Legal consistency: the extracted objection period should match the statutory one | § 67 OWiG: two weeks |
+| `text_pattern` | Scam signs in the letter text | *Paysafecard, Bitcoin, innerhalb von 24 Stunden, Haftbefehl* |
+| `foreign_iban` | An authority asking for payment to a non-German IBAN | FR14 … |
+| `iban_checksum` | IBAN fails the ISO 13616 mod-97 check (misread or fake) | |
+| `escalate` / `escalate_on_pattern` | High-stakes letters → show help resources | court, immigration office, *Zwangsvollstreckung* |
+
+**Adding a rule needs no code**, only JSON. For example, to require an
+appointment for Jobcenter letters:
+
+```json
+{
+  "id": "C-JOBCENTER-APPOINTMENT",
+  "type": "requires_item",
+  "applies_to": "jobcenter_bescheid",
+  "item_kind": "appointment",
+  "match_any": ["termin", "einladung"],
+  "severity": "warning",
+  "message": "Jobcenter letters often contain an appointment, but none was extracted."
+}
+```
+
+Then run `python -m pytest` and `python -m evaluation.benchmark` to make sure
+it causes no false alarms.
+
+### Grounding ("nothing invented") in detail
+
+For each fact, `harness/checks/grounding.py` checks (in code, independent of the model):
+
+1. **Quote in letter:** the `source_quote` occurs in the transcribed text
+   (whitespace and punctuation insensitive). If not, ≥ 80 % word overlap counts
+   as *paraphrased* (info); otherwise it is *not in document* (critical).
+2. **Numbers in quote:** every number in `value` occurs in the quote. Number
+   words (*zwei Wochen* → 2) and month names (*November* → 11) are understood.
+3. **Amount:** `amount` matches an amount in the quote (German `1.234,56` format understood).
+4. **Date:** `date` is printed in the quote (info if only elsewhere in the
+   letter; warning if nowhere, i.e. calculated).
+
+A fact with a critical or warning issue is marked **not grounded**: its card
+shows "⛔ Not found in the letter text — verify before acting on it".
+
+### Adding a check
+
+Every check implements the same contract (`harness/base.py`) and is independent
+of the others:
+
+```python
+# backend/app/harness/checks/my_check.py
+from ..base import CheckContext, CheckOutput
+
+class MyCheck:
+    name = "my_check"
+
+    def run(self, ctx: CheckContext) -> CheckOutput:
+        # ctx.result (the AI's answer), ctx.transcript (letter text),
+        # ctx.knowledge (KnowledgeGraph), ctx.document_class
+        return CheckOutput(findings=[...])
+```
+
+Add `MyCheck()` to `DEFAULT_CHECKS` in `harness/checks/__init__.py`, write a test in
+`tests/test_harness.py`, and run the benchmark to confirm there are no new false alarms.
+
+### Safeguards
+
+- **Prompt injection.** The prompt tells the model that the letter is untrusted
+  data and to copy any AI-directed text into `suspicious_instructions`. Code
+  independently scans the letter text for injection patterns (English and
+  German), so even a model that obeys the injection is caught.
+- **Abstain instead of guessing.** The model rates `image_quality`. An
+  `unreadable` photo is refused with "please retake" (HTTP 422); `poor` gives a
+  warning. Facts rated `confidence: low` are flagged on their card.
+- **Escalation.** Court documents, immigration letters, tenancy terminations,
+  debt collection, enforcement wording and any suspected scam show concrete
+  places to get help (Verbraucherzentrale, debt counselling, mbeon, legal aid,
+  police). The app explains; it does not give legal advice.
+
+### Evaluation
+
+**1. Fault-injection benchmark (offline, free, deterministic).** It takes the
+correct answers for the sample letters, corrupts them the way a model can fail,
+and checks the harness notices:
+
+```bash
+cd backend && .venv/Scripts/python -m evaluation.benchmark
+```
+
+Current result (also enforced by `tests/test_harness.py`):
+
+| Fault type | Detected |
+|---|---|
+| wrong number in a value | 14/14 |
+| wrong amount | 3/3 |
+| shifted date | 2/2 |
+| fabricated quote | 19/19 |
+| invented fact | 3/3 |
+| dropped fact ("lost") | 19/19 |
+| prompt injection inserted | 3/3 |
+| scam payment method inserted | 3/3 |
+| expected safety findings on the sample letters | 5/5 |
+| **Total (German letters only)** | **71/71 (100%), 0 false alarms on correct answers** |
+
+With the medical domain added the benchmark covers 154 faults; see [section 11](#11-medical-documents-for-low-health-literacy-hackathon-problem).
+
+**2. End-to-end evaluation with a real model (uses API credits).** It sends the
+sample letters to Claude or TrustedTokens and scores recall ("nothing lost"),
+facts not traceable to the true letter text ("nothing invented") and how many of
+those the harness flagged:
+
+```bash
+cd backend && .venv/Scripts/python -m evaluation.run_eval --analyzer claude
+```
+
+Results are written to `backend/evaluation/results/`. **Add real letters** by
+creating `evaluation/cases/<name>/page_0.jpg` and an `expected.json` (see the
+existing cases). Real letters are the best way to make these numbers credible.
+
+The sample letters are rendered by `scripts/make_samples.py` (genuine fine,
+fake debt collection, letter with hidden AI instructions), so their ground
+truth is exact.
+
+### Honest limitations
+
+- The rules are **curated** from statute and common scam patterns, not mined
+  from usage data (no historical data was available). The JSON format and the
+  evaluation runner are ready for mined rules: add them to `rules.json` and
+  measure them.
+- The benchmark uses three synthetic letters. It proves the checks work as
+  designed, not how often a model makes each error on real mail; for that, run
+  `run_eval` on real letters.
+- Grounding checks consistency between the model's quote and its own
+  transcription; the fully independent check is the browser OCR. Both together
+  make an invented fact very unlikely to go unnoticed.
+- Pattern lists (scam, injection) cannot be exhaustive, and the harness
+  messages are in English regardless of the target language.
+
+---
+
+## 11. Medical documents for low health literacy (hackathon problem)
+
+> *How can I make medical information (diagnoses, discharge notes, medication
+> plans) understandable and actionable with low health literacy?*
+
+The medical solution is a second **domain pack**
+(`backend/app/domains/medical_document/`) on the same engine. It is the default;
+the German-letters pack remains selectable via the **Document** switcher.
+
+### Personas and what serves them
+
+| Persona | Need | What the app does |
+|---|---|---|
+| Low health literacy | Simple words, clear actions | Plain-language explanations (≤ 12 words per sentence, every term explained with the German term in brackets), **"Einfache Sprache"** as an output language, a **daily medicine plan** (morning / noon / evening / night), "what to do" steps, warning signs, follow-up dates, and **calendar reminders** for every medicine |
+| Visually impaired | Not having to read | **Read aloud** for the summary, steps and medicine plan (browser speech synthesis, on-device), a screen-reader announcement of the result, labelled controls; the prompt writes text that works read aloud (no tables, symbols or unexplained abbreviations) |
+| Elderly with poor eyesight | Bigger, clearer display | **Text size** 100 / 120 / 140 % and a **high-contrast** mode (remembered per browser), large touch targets, the photo shown next to the explanation |
+
+### What the AI extracts (contract additions)
+
+- `medications[]`: each medicine **exactly as printed**: name, strength, form,
+  dose columns `morning / noon / evening / night` (bundeseinheitlicher
+  Medikationsplan), `schedule_text` for non-daily rules (e.g. *1x wöchentlich
+  montags*, *bis einschließlich 12.10.2026*), `status` (new / changed /
+  continued / stopped), plus `purpose` and `instructions` in plain words.
+- New key-fact kinds: `diagnosis` (with ICD-10 code), `warning_sign`,
+  `instruction`, besides `appointment`.
+
+### Harness additions (accuracy and safety)
+
+| Check | Type | What it guarantees |
+|---|---|---|
+| **Medication grounding** | `checks/grounding.py` | Every medicine's name and strength are in its quote; doses are compared **slot by slot** with the printed schedule (`1-0-1-0`), so a swapped morning/evening dose is caught |
+| **Dose, schedule and change coverage** | `rules.json` (`signal_coverage`) | Every *name + dose* (e.g. "Ramipril 5 mg"), every schedule, every *abgesetzt / pausiert / neu angesetzt*, follow-up date, warning sign, instruction, diagnosis code and phone number printed in the document is extracted ("nothing lost"). Coverage is checked on whole tokens, so "N10" is not "found" inside "Metformin 1000" |
+| **No-advice guard** | new rule type `output_pattern` | Checks the AI's **own wording**: telling the reader to stop, skip or change a medicine is flagged as critical unless the document says so. It is medication-aware: "stop Metformin" is fine if Metformin is `stopped` in the document, "stop Ramipril" is not. False reassurance ("nothing to worry about") is flagged |
+| **Readability** | `checks/readability.py` | Flesch Reading Ease (English) / Amstad (German, incl. Einfache Sprache) of the explanation against a target of 60, shown as "reading ease" |
+| **Medication safety notes** | `rules.json` (`text_pattern`, category `safety`) | Methotrexate is usually taken **once a week** (a classic, dangerous dosing error); blood thinners; insulin |
+| **Escalation** | `rules.json` | Warning signs → **112 / 116117**; every doctor's letter → your family doctor, *Was hab' ich?*, gesund.bund.de and your rights (§ 630e, § 630g BGB); medication plans → pharmacy |
+
+Benchmark (all domains, `python -m evaluation.benchmark`): **154/154 injected faults
+detected, 0 false alarms**, including wrong strength, wrong dose, wrong or invented
+medicine, dropped medicine, made-up stop advice, false reassurance and jargon-heavy
+explanations.
+
+### DSGVO / GDPR
+
+Health data is a special category (Art. 9 GDPR). The medical pack therefore sets
+`privacy.requires_consent`:
+
+- **Explicit consent** (Art. 9(2)(a)): the UI requires a consent checkbox, and the
+  **backend refuses** health documents without `consent=true` (HTTP 428), so the
+  rule cannot be bypassed by another client.
+- **Transparency** (Art. 13): the consent text and the upload panel name the
+  processor and region of the configured AI provider (`/api/meta → processing`),
+  and warn if it is outside the EU. Recommended for production:
+  `ANALYZER=trustedtokens` (EU, Germany).
+- **Data minimisation** (Art. 5(1)(c)): before upload, the browser runs its own OCR,
+  finds personal identifiers (patient name, date of birth, postal address, insurance
+  and case numbers, and the name wherever else it appears) and **blacks them out on a
+  copy**. Only the copy is uploaded; the original never leaves the device. The results
+  screen shows "🔒 N hidden · Show what was sent". On by default for health data
+  (`privacy.redact_personal_data`), optional for letters. If OCR is unavailable, nothing
+  is sent unless the user switches the option off. Implementation:
+  `frontend/src/features/privacy/redact.ts`.
+- **Storage limitation** (Art. 5(1)(e)): nothing is stored; images live only for the
+  duration of one request; logs contain no document content.
+- **No medical advice:** the app explains documents and points to professionals; the
+  no-advice guard and the disclaimer keep it on the information side.
+
+See [PRIVACY.md](PRIVACY.md), [ADR 0008](docs/adr/0008-health-data-consent-and-accessibility.md) and
+[OFFICIAL_SOURCES.md](OFFICIAL_SOURCES.md) for the official sources behind the ontology and rules.
+
+### Next steps
+
+- **WhatsApp:** send a photo to a WhatsApp number and receive the explanation, the
+  medicine plan and a voice message back. It needs the WhatsApp Business API
+  (business verification) and a GDPR review of Meta as an additional processor;
+  the backend API is already suitable as the engine.
+- Evaluate with real (anonymised) discharge letters and medication plans via
+  `evaluation/run_eval.py`.
+- Medication interactions and reading the BMP's QR code are possible extensions.

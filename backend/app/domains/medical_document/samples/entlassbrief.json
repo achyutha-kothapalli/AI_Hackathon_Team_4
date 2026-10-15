@@ -1,0 +1,425 @@
+{
+  "document_type": "Hospital discharge letter (Entlassbrief)",
+  "document_class": "discharge_letter",
+  "image_quality": "good",
+  "sender": "Klinikum Musterstadt, Department of Internal Medicine",
+  "source_language": "German",
+  "target_language": "English",
+  "summary": "You were in hospital from 1 to 8 October 2026. You had an infection of the kidney. It got better with antibiotics. You have a new medicine for your blood pressure. Do not take Metformin for now. See your family doctor on 15 October 2026.",
+  "action_steps": [
+    "Take your medicines as shown in your daily plan.",
+    "Take the antibiotic Cefuroxim until 12 October 2026. Then it is finished.",
+    "Do not take Metformin until your doctor has checked your kidneys.",
+    "Drink at least 2 litres every day.",
+    "Go to your family doctor on 15 October 2026.",
+    "Get help at once if you get a high fever, strong pain in your side, or feel confused."
+  ],
+  "key_items": [
+    {
+      "id": "k0",
+      "kind": "diagnosis",
+      "importance": "high",
+      "label": "Kidney infection (Pyelonephritis)",
+      "value": "Akute Pyelonephritis rechts (N10)",
+      "explanation": "You had an infection of your right kidney. It caused fever and pain in your side.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 396,
+        "x1": 387,
+        "y1": 415
+      },
+      "source_quote": "Akute Pyelonephritis rechts (N10)",
+      "confidence": "high"
+    },
+    {
+      "id": "k1",
+      "kind": "diagnosis",
+      "importance": "medium",
+      "label": "High blood pressure (Hypertonie)",
+      "value": "Arterielle Hypertonie (I10.90)",
+      "explanation": "Your blood pressure is too high. Medicines help to keep it normal.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 416,
+        "x1": 347,
+        "y1": 436
+      },
+      "source_quote": "Arterielle Hypertonie (I10.90)",
+      "confidence": "high"
+    },
+    {
+      "id": "k2",
+      "kind": "diagnosis",
+      "importance": "medium",
+      "label": "Diabetes type 2 (Diabetes mellitus)",
+      "value": "Diabetes mellitus Typ 2 (E11.90)",
+      "explanation": "Your blood sugar is too high. This is a long-term illness.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 437,
+        "x1": 377,
+        "y1": 456
+      },
+      "source_quote": "Diabetes mellitus Typ 2 (E11.90)",
+      "confidence": "high"
+    },
+    {
+      "id": "k3",
+      "kind": "appointment",
+      "importance": "high",
+      "label": "Check-up at your family doctor",
+      "value": "15.10.2026",
+      "explanation": "Your doctor will check your kidneys and your blood sugar.",
+      "date": "2026-10-15",
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 355,
+        "y0": 642,
+        "x1": 767,
+        "y1": 661
+      },
+      "source_quote": "Wiedervorstellung beim Hausarzt am 15.10.2026",
+      "confidence": "high"
+    },
+    {
+      "id": "k4",
+      "kind": "warning_sign",
+      "importance": "high",
+      "label": "Get help at once if…",
+      "value": "Fieber über 38,5 °C, starke Flankenschmerzen, Verwirrtheit",
+      "explanation": "If you get a fever over 38.5 degrees, strong pain in your side, or feel confused: see your doctor at once, or go to the emergency department.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 690,
+        "x1": 894,
+        "y1": 730
+      },
+      "source_quote": "Bei Fieber über 38,5 °C, starken Flankenschmerzen oder Verwirrtheit stellen Sie sich bitte sofort beim Hausarzt oder in der Notaufnahme vor.",
+      "confidence": "high"
+    },
+    {
+      "id": "k5",
+      "kind": "instruction",
+      "importance": "medium",
+      "label": "Drink enough",
+      "value": "mindestens 2 Liter pro Tag",
+      "explanation": "Drink at least 2 litres of water or tea every day. This helps your kidneys.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 198,
+        "y0": 621,
+        "x1": 565,
+        "y1": 641
+      },
+      "source_quote": "Bitte trinken Sie mindestens 2 Liter pro Tag.",
+      "confidence": "high"
+    },
+    {
+      "id": "k6",
+      "kind": "instruction",
+      "importance": "high",
+      "label": "Metformin: wait for your doctor",
+      "value": "erst nach Kontrolle der Nierenwerte",
+      "explanation": "Start Metformin again only when your doctor says so, after a kidney test.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 621,
+        "x1": 884,
+        "y1": 661
+      },
+      "source_quote": "Metformin bitte erst nach Kontrolle der Nierenwerte wieder ansetzen.",
+      "confidence": "high"
+    },
+    {
+      "id": "k7",
+      "kind": "contact",
+      "importance": "low",
+      "label": "Hospital ward 4B",
+      "value": "0123 4567-400",
+      "explanation": "Call this number if you have questions about your hospital stay.",
+      "date": null,
+      "amount": null,
+      "currency": null,
+      "page": 0,
+      "bbox": {
+        "x0": 642,
+        "y0": 75,
+        "x1": 803,
+        "y1": 94
+      },
+      "source_quote": "Tel.: 0123 4567-400",
+      "confidence": "high"
+    }
+  ],
+  "medications": [
+    {
+      "id": "m0",
+      "name": "Ramipril",
+      "active_ingredient": null,
+      "strength": "5 mg",
+      "form": null,
+      "morning": "1",
+      "noon": "0",
+      "evening": "1",
+      "night": "0",
+      "schedule_text": null,
+      "status": "continued",
+      "purpose": "For your blood pressure.",
+      "instructions": "Take one tablet in the morning and one in the evening.",
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 532,
+        "x1": 407,
+        "y1": 552
+      },
+      "source_quote": "Ramipril 5 mg 1-0-1-0 (unverändert)",
+      "confidence": "high"
+    },
+    {
+      "id": "m1",
+      "name": "Amlodipin",
+      "active_ingredient": null,
+      "strength": "5 mg",
+      "form": null,
+      "morning": "1",
+      "noon": "0",
+      "evening": "0",
+      "night": "0",
+      "schedule_text": null,
+      "status": "new",
+      "purpose": "New medicine for your blood pressure.",
+      "instructions": "Take one tablet in the morning.",
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 553,
+        "x1": 351,
+        "y1": 572
+      },
+      "source_quote": "Amlodipin 5 mg 1-0-0-0 (neu)",
+      "confidence": "high"
+    },
+    {
+      "id": "m2",
+      "name": "Cefuroxim",
+      "active_ingredient": null,
+      "strength": "500 mg",
+      "form": null,
+      "morning": "1",
+      "noon": "0",
+      "evening": "1",
+      "night": "0",
+      "schedule_text": "bis einschließlich 12.10.2026",
+      "status": "new",
+      "purpose": "Antibiotic against the kidney infection.",
+      "instructions": "Take one tablet in the morning and one in the evening, until 12 October 2026.",
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 574,
+        "x1": 621,
+        "y1": 593
+      },
+      "source_quote": "Cefuroxim 500 mg 1-0-1-0 bis einschließlich 12.10.2026 (neu)",
+      "confidence": "high"
+    },
+    {
+      "id": "m3",
+      "name": "Metformin",
+      "active_ingredient": null,
+      "strength": "1000 mg",
+      "form": null,
+      "morning": null,
+      "noon": null,
+      "evening": null,
+      "night": null,
+      "schedule_text": null,
+      "status": "stopped",
+      "purpose": "For your blood sugar.",
+      "instructions": "Do not take it for now. Your doctor will tell you when to start again.",
+      "page": 0,
+      "bbox": {
+        "x0": 102,
+        "y0": 594,
+        "x1": 401,
+        "y1": 613
+      },
+      "source_quote": "Metformin 1000 mg wurde pausiert.",
+      "confidence": "high"
+    }
+  ],
+  "blocks": [
+    {
+      "id": "p0-b0",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 57,
+        "x1": 443,
+        "y1": 116
+      },
+      "original": "Klinikum Musterstadt\nKlinik für Innere Medizin\nChefarzt Prof. Dr. med. Thomas Berg",
+      "translation": "Klinikum Musterstadt (hospital)\nDepartment of Internal Medicine\nHead physician Prof. Dr. Thomas Berg"
+    },
+    {
+      "id": "p0-b1",
+      "page": 0,
+      "bbox": {
+        "x0": 645,
+        "y0": 57,
+        "x1": 800,
+        "y1": 111
+      },
+      "original": "Station 4B\nTel.: 0123 4567-400\nDatum: 08.10.2026",
+      "translation": "Ward 4B\nPhone: 0123 4567-400\nDate: 8 October 2026"
+    },
+    {
+      "id": "p0-b2",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 160,
+        "x1": 339,
+        "y1": 236
+      },
+      "original": "Frau Dr. med. Anna Schmidt\nHausarztpraxis\nLindenstraße 8\n12345 Musterstadt",
+      "translation": "Dr. Anna Schmidt\nFamily practice\nLindenstraße 8\n12345 Musterstadt"
+    },
+    {
+      "id": "p0-b3",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 268,
+        "x1": 254,
+        "y1": 288
+      },
+      "original": "Entlassbrief",
+      "translation": "Discharge letter"
+    },
+    {
+      "id": "p0-b4",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 300,
+        "x1": 515,
+        "y1": 335
+      },
+      "original": "Patientin: Erika Mustermann, geb. 12.03.1948\nStationärer Aufenthalt: 01.10.2026 bis 08.10.2026",
+      "translation": "Patient: Erika Mustermann, born 12 March 1948\nHospital stay: 1 October 2026 to 8 October 2026"
+    },
+    {
+      "id": "p0-b5",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 350,
+        "x1": 332,
+        "y1": 365
+      },
+      "original": "Sehr geehrte Frau Kollegin,",
+      "translation": "Dear colleague,"
+    },
+    {
+      "id": "p0-b6",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 377,
+        "x1": 384,
+        "y1": 454
+      },
+      "original": "Diagnosen:\nAkute Pyelonephritis rechts (N10)\nArterielle Hypertonie (I10.90)\nDiabetes mellitus Typ 2 (E11.90)",
+      "translation": "Diagnoses:\nAcute kidney infection, right side (N10)\nHigh blood pressure (I10.90)\nType 2 diabetes (E11.90)"
+    },
+    {
+      "id": "p0-b7",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 466,
+        "x1": 859,
+        "y1": 502
+      },
+      "original": "Verlauf: Die Patientin wurde mit Fieber und Flankenschmerzen aufgenommen. Unter intravenöser Antibiose besserte sich der Zustand rasch. Kreatinin bei Entlassung 1,4 mg/dl.",
+      "translation": "Course: The patient was admitted with fever and pain in the side. With intravenous antibiotics her condition improved quickly. Creatinine at discharge 1.4 mg/dl."
+    },
+    {
+      "id": "p0-b8",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 514,
+        "x1": 618,
+        "y1": 611
+      },
+      "original": "Medikation bei Entlassung:\nRamipril 5 mg 1-0-1-0 (unverändert)\nAmlodipin 5 mg 1-0-0-0 (neu)\nCefuroxim 500 mg 1-0-1-0 bis einschließlich 12.10.2026 (neu)\nMetformin 1000 mg wurde pausiert.",
+      "translation": "Medication at discharge:\nRamipril 5 mg 1-0-1-0 (unchanged)\nAmlodipine 5 mg 1-0-0-0 (new)\nCefuroxime 500 mg 1-0-1-0 up to and including 12 October 2026 (new)\nMetformin 1000 mg has been paused."
+    },
+    {
+      "id": "p0-b9",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 624,
+        "x1": 881,
+        "y1": 680
+      },
+      "original": "Procedere: Bitte trinken Sie mindestens 2 Liter pro Tag. Metformin bitte erst nach Kontrolle der Nierenwerte wieder ansetzen. Wiedervorstellung beim Hausarzt am 15.10.2026 zur Kontrolle von Kreatinin und Blutzucker.",
+      "translation": "Next steps: Please drink at least 2 litres per day. Restart Metformin only after the kidney values have been checked. Follow-up with the family doctor on 15 October 2026 to check creatinine and blood sugar."
+    },
+    {
+      "id": "p0-b10",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 692,
+        "x1": 890,
+        "y1": 727
+      },
+      "original": "Bei Fieber über 38,5 °C, starken Flankenschmerzen oder Verwirrtheit stellen Sie sich bitte sofort beim Hausarzt oder in der Notaufnahme vor.",
+      "translation": "If you have a fever above 38.5 °C, strong pain in your side or confusion, see your family doctor or go to the emergency department immediately."
+    },
+    {
+      "id": "p0-b11",
+      "page": 0,
+      "bbox": {
+        "x0": 105,
+        "y0": 748,
+        "x1": 506,
+        "y1": 783
+      },
+      "original": "Mit freundlichen kollegialen Grüßen\nProf. Dr. med. Thomas Berg, Dr. med. Lena Vogt",
+      "translation": "With kind regards\nProf. Dr. Thomas Berg, Dr. Lena Vogt"
+    }
+  ],
+  "confidence_note": null,
+  "suspicious_instructions": null
+}

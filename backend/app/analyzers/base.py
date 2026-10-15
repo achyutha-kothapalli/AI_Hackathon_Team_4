@@ -3,8 +3,18 @@
 from dataclasses import dataclass
 from typing import Protocol
 
-from ..profiles import Profile
+from ..core.errors import AppError
+from ..domains import Domain
 from ..schemas.analysis import AnalysisResult
+
+
+@dataclass(frozen=True)
+class ProcessingInfo:
+    """Who processes uploaded documents and where (GDPR transparency, Art. 13)."""
+
+    provider: str
+    region: str
+    eu: bool
 
 
 @dataclass(frozen=True)
@@ -16,20 +26,22 @@ class PageImage:
 @dataclass(frozen=True)
 class AnalysisRequest:
     pages: list[PageImage]
-    profile: Profile
+    domain: Domain
     target_language: str
+    # Name of a bundled sample letter, sent by the UI's "Try a sample" buttons.
+    # Only the mock analyzer uses it; real analyzers ignore it.
+    sample: str | None = None
 
 
-class AnalyzerError(Exception):
-    """Raised for failures the user should see. status_code maps to HTTP."""
+class AnalyzerError(AppError):
+    """An AI-provider failure the user should see (defaults to 502 Bad Gateway)."""
 
     def __init__(self, message: str, status_code: int = 502):
-        super().__init__(message)
-        self.message = message
-        self.status_code = status_code
+        super().__init__(message, status_code)
 
 
 class Analyzer(Protocol):
     name: str
+    processing: ProcessingInfo
 
     async def analyze(self, request: AnalysisRequest) -> AnalysisResult: ...

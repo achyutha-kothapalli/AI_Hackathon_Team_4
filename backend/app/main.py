@@ -1,33 +1,35 @@
-import logging
+"""FastAPI application factory: wires core concerns (logging, CORS, errors) and routes."""
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 
-from .analyzers import AnalyzerError
 from .api.routes import router
-from .config import get_settings
-
-logging.basicConfig(level=logging.INFO)
+from .core.config import APP_NAME, APP_VERSION, get_settings
+from .core.errors import register_error_handlers
+from .core.logging import configure_logging, register_request_logging
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title="Letter Lens API", version="0.1.0", docs_url="/api/docs", openapi_url="/api/openapi.json")
+    configure_logging()
+    app = FastAPI(
+        title=f"{APP_NAME} API",
+        version=APP_VERSION,
+        docs_url="/api/docs",
+        openapi_url="/api/openapi.json",
+    )
 
     # Only needed when the frontend is served from a different origin;
-    # on Vercel both live on the same domain.
+    # on Vercel's one-project deploy both live on the same domain.
     app.add_middleware(
         CORSMiddleware,
         allow_origins=list(settings.cors_origins),
         allow_methods=["*"],
         allow_headers=["*"],
+        expose_headers=["X-Request-ID"],
     )
-
-    @app.exception_handler(AnalyzerError)
-    async def analyzer_error_handler(_: Request, exc: AnalyzerError) -> JSONResponse:
-        return JSONResponse(status_code=exc.status_code, content={"detail": exc.message})
-
+    register_request_logging(app)
+    register_error_handlers(app)
     app.include_router(router)
     return app
 

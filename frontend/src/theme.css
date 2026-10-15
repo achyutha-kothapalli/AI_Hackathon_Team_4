@@ -1,0 +1,130 @@
+/* Copied verbatim from hackathonAI/playbook/themes/minimal/theme.css (Minimal / Mono). Do not edit here. */
+/* Minimal / Mono — light. A precise working document: white page, one blue action, hairline rules,
+   mono section numbers. Dev tools, B2B, AI productivity. Spec: themes/minimal/DESIGN.md */
+:root {
+  /* Surfaces and text */
+  --background: #FFFFFF;
+  --background-image: none;
+  --foreground: #0A0A0A;
+  --card: #FFFFFF;
+  --card-foreground: #0A0A0A;
+  --card-nested: #FFFFFF;
+  --popover: #FFFFFF;
+  --popover-foreground: #0A0A0A;
+  --surface-solid: #FFFFFF;
+  --code: #F4F4F5;
+  --input-bg: #FFFFFF;
+
+  /* Actions and selection */
+  --primary: #2F5BEA;
+  --primary-foreground: #FFFFFF;
+  --primary-hover: #2449C4;
+  --primary-active: #1E3FAE;
+  --primary-disabled: #F4F4F5;
+  --primary-disabled-foreground: #8A8A8F;
+  --secondary: #F4F4F5;
+  --secondary-foreground: #18181B;
+  --secondary-hover: #E4E4E7;
+  --secondary-active: #D4D4D8;
+  --muted: #F4F4F5;
+  --muted-foreground: #6B6B6B;
+  --accent: #EEF2FE;
+  --accent-foreground: #1E3FAE;
+
+  /* Status */
+  --destructive: #C81E1E;
+  --destructive-foreground: #FFFFFF;
+  --destructive-surface: #FEF2F2;
+  --destructive-text: #991B1B;
+  --success: #15803D;
+  --success-foreground: #FFFFFF;
+  --success-surface: #ECFDF3;
+  --success-text: #14532D;
+  --warning: #B45309;
+  --warning-foreground: #FFFFFF;
+  --warning-surface: #FFF7ED;
+  --warning-text: #7C2D12;
+  --info: #2F5BEA;
+  --info-surface: #EEF2FE;
+  --info-text: #1E3FAE;
+
+  /* Lines, focus, data, overlay */
+  --border: #E4E4E7;
+  --border-strong: #D4D4D8;
+  --input: #8E8E95;
+  --ring: #2F5BEA;
+  --chart-1: #2F5BEA;
+  --chart-2: #6D8BEF;
+  --chart-3: #D4D4D8;
+  --scrim: #0A0A0A66;
+
+  /* Shape and elevation */
+  --radius: 8px;
+  --radius-sm: 6px;
+  --radius-lg: 12px;
+  --radius-badge: 4px;
+  --border-width: 1px;
+  --control-height: 40px;
+  --shadow-sm: none;
+  --shadow: none;
+  --shadow-lg: 0 1px 3px #00000014;
+  --shadow-hover: none;
+  --button-shadow: none;
+  --button-shadow-hover: none;
+  --cta-glow: none;
+  --blur: 0px;
+  --emphasis-border: transparent;
+  --color-scheme: light;
+  --ring-width: 2px;
+  --ring-offset: 2px;
+
+  /* Type */
+  --font-sans: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --display-weight: 600;
+  --display-tracking: -0.035em;
+  --hero-size: 64px;
+  --hero-size-mobile: 38px;
+  --hero-leading: 1.05;
+  --hero-measure: 15ch;
+  --h1-size: 30px;
+
+  /* Motion: colour only, no movement */
+  --duration-hover: 140ms;
+  --duration-state: 140ms;
+  --duration-reveal: 140ms;
+  --ease-out: cubic-bezier(0, 0, 0.2, 1);
+  --hover-y: 0px;
+  --lift-y: 0px;
+  --press-x: 0px;
+  --press-y: 0px;
+  --press-shadow: none;
+  --settle-scale: 1;
+
+  /* Composition: 5/7 top-aligned hero, mono section numbers, final CTA as a ruled row */
+  --hero-columns: minmax(0, 5fr) minmax(0, 7fr);
+  --hero-align: start;
+  --hero-bg: transparent;
+  --hero-padding: 72px 0 64px;
+  --hero-padding-mobile: 40px 0 32px;
+  --hero-radius: 0px;
+  --hero-shadow: none;
+  --marker-display: inline-flex;
+  --marker-font: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --marker-size: 13px;
+  --marker-weight: 400;
+  --marker-color: #6B6B6B;
+  --marker-border: 0 solid transparent;
+  --marker-padding: 0px;
+  --next-step-display: none;
+  --sticker-display: none;
+  /* Open rows (proof row, numbered steps): Glass puts them on a panel so text never sits on the mesh */
+  --open-bg: transparent;
+  --open-padding: 0px;
+  --open-radius: 0px;
+  --cta-band-bg: transparent;
+  --cta-band-radius: 0px;
+  --cta-band-shadow: inset 0 1px 0 #E4E4E7;
+  --cta-band-padding: 32px 0;
+}
