@@ -123,3 +123,11 @@ Every push to `main` redeploys; every pull request gets its own preview URL.
 3. **Frontend project:** Import the same repo again with **Root Directory = `frontend`**.
    Add `VITE_API_URL` = the backend URL from step 2. Deploy.
 4. If the frontend URL changed, update `CORS_ORIGINS` on the backend and redeploy it.
+
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE). Copyright 2026 the
+AI Hackathon Team 4 contributors.
+
+The app explains documents; it does not give medical or legal advice. See the
+license for the full disclaimer of warranty and limitation of liability.

@@ -6,6 +6,7 @@ name = "briefverstehen-backend"
 version = "0.2.0"
 description = "Translate and explain official letters, with an accuracy & safety harness."
 requires-python = ">=3.12"
+license = "Apache-2.0"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
